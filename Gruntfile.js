@@ -18,7 +18,7 @@ module.exports = function(grunt) {
             },
             app : {
                 files : {
-                    './dist-browser/<%= pkg.name %>.js' : [ 'src/index.js' ]
+                    './dist/<%= pkg.name %>.js' : [ 'src/index.js' ]
                 },
                 options : {
                     external : [ 'underscore', 'mosaic-commons' ],
@@ -32,8 +32,8 @@ module.exports = function(grunt) {
                 banner : banner
             },
             browser : {
-                src : 'dist-browser/<%= pkg.name %>.js',
-                dest : 'dist-browser/<%= pkg.name %>.min.js'
+                src : 'dist/<%= pkg.name %>.js',
+                dest : 'dist/<%= pkg.name %>.min.js'
             }
         },
         jshint : {
@@ -57,7 +57,6 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-mocha-test');
     grunt.loadNpmTasks('grunt-browserify');
-    grunt.loadNpmTasks('browserify-shim');
 
     // this would be run by typing "grunt test" on the command line
     grunt.registerTask('test', [ 'jshint', 'mochaTest' ]);
