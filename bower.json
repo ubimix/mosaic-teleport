@@ -1,9 +1,0 @@
-{
-    "name" : "mosaic-teleport",
-    "version" : "0.0.1",
-    "main": "dist/mosaic-teleport.js",
-    "dependencies" : {
-        "underscore" : "~1.4.4",
-        "mosaic-commons" : "~0.0.1"
-    }
-}

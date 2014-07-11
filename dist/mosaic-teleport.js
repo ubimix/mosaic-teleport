@@ -1,11 +1,13 @@
 require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+
+},{}],2:[function(require,module,exports){
 (function (global){
 (function(require) {
     "use strict";
 
     var Mosaic = module.exports = require('mosaic-commons');
     require('./Mosaic.PathMapper');
-    var _ = (typeof window !== "undefined" ? window._ : typeof global !== "undefined" ? global._ : null);
+    var _ = (typeof window !== "undefined" ? window.Mosaic.libs.underscore : typeof global !== "undefined" ? global.Mosaic.libs.underscore : null);
 
     var P = Mosaic.P;
     var Class = Mosaic.Class;
@@ -198,13 +200,13 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
 })(require);
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./Mosaic.PathMapper":2,"mosaic-commons":"2iUeNl"}],2:[function(require,module,exports){
+},{"./Mosaic.PathMapper":3}],3:[function(require,module,exports){
 (function (global){
 (function module(require) {
     "use strict";
 
     var Mosaic = module.exports = require('mosaic-commons');
-    var _ = (typeof window !== "undefined" ? window._ : typeof global !== "undefined" ? global._ : null);
+    var _ = (typeof window !== "undefined" ? window.Mosaic.libs.underscore : typeof global !== "undefined" ? global.Mosaic.libs.underscore : null);
 
     function PathMapper() {
         var escapeRegExp = /[\-{}\[\]+?.,\\\^$|#\s]/g;
@@ -311,11 +313,11 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
 })(require);
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"mosaic-commons":"2iUeNl"}],"mosaic-teleport":[function(require,module,exports){
+},{}],"mosaic-teleport":[function(require,module,exports){
 module.exports=require('H99CHA');
 },{}],"H99CHA":[function(require,module,exports){
 module.exports = require('mosaic-commons');
 require('./Mosaic.ApiDescriptor');
 require('./Mosaic.PathMapper');
 
-},{"./Mosaic.ApiDescriptor":1,"./Mosaic.PathMapper":2,"mosaic-commons":"2iUeNl"}]},{},["H99CHA"]);
+},{"./Mosaic.ApiDescriptor":2,"./Mosaic.PathMapper":3}]},{},["H99CHA"]);

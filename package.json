@@ -1,42 +1,47 @@
 {
-    "name" : "mosaic-teleport",
-    "version" : "0.0.1",
-    "main" : "src/index.js",
-    "licenses" : [ {
-        "type" : "BSD"
-    } ],
-    "contributors" : [ {
-        "name" : "Mikhail Kotelnikov",
-        "email" : "mikhail.kotelnikov"
-    } ],
-    "dependencies" : {
-        "underscore" : "~1.4.4",
-        "when" : "*"
-    },
-    "devDependencies" : {
-        "mocha" : "*",
-        "expect.js" : "*",
-        "grunt" : "^0.4.5",
-        "grunt-contrib-jshint" : "^0.10.0",
-        "grunt-contrib-nodeunit" : "~0.3.3",
-        "grunt-contrib-uglify" : "~0.4.0",
-        "grunt-contrib-concat" : "^0.4.0",
-        "grunt-mocha-test" : "^0.11.0",
-        "grunt-contrib-watch" : "^0.6.1",
-        "grunt-browserify" : "^2.1.3",
-        "browserify" : "^4.2.0",
-        "browserify-shim" : "^3.6.0",
-        "mosaic-commons" : "*"
-    },
-    "scripts" : {
-        "test" : "mocha -R spec ./test/Test*"
-    },
-    
-    "browserify-shim" : {
-        "underscore" : "global:_",
-        "mosaic-commons" : "mosaic-commons"
-    },
-    "browserify" : {
-        "transform" : [ "browserify-shim" ]
+  "name": "mosaic-teleport",
+  "version": "0.0.1",
+  "main": "src/index.js",
+  "licenses": [
+    {
+      "type": "BSD"
     }
+  ],
+  "contributors": [
+    {
+      "name": "Mikhail Kotelnikov",
+      "email": "mikhail.kotelnikov"
+    }
+  ],
+  "dependencies": {
+    "underscore": "~1.4.4",
+    "when": "*",
+    "mosaic-commons": "~0.0.1"
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "expect.js": "*",
+    "grunt": "^0.4.5",
+    "grunt-contrib-jshint": "^0.10.0",
+    "grunt-contrib-nodeunit": "~0.3.3",
+    "grunt-contrib-uglify": "~0.4.0",
+    "grunt-contrib-concat": "^0.4.0",
+    "grunt-mocha-test": "^0.11.0",
+    "grunt-contrib-watch": "^0.6.1",
+    "grunt-browserify": "^2.1.3",
+    "browserify": "^4.2.0",
+    "browserify-shim": "^3.6.0"
+  },
+  "scripts": {
+    "test": "mocha -R spec ./test/Test*"
+  },
+  "browser" : {
+      "mosaic-commons" : "node_modules/mosaic-commons/dist/mosaic-commons.js"
+  },
+  "browserify-shim" : {
+      "underscore" : "global:Mosaic.libs.underscore"
+  },
+  "browserify" : {
+      "transform" : [ "browserify-shim" ]
+  }
 }

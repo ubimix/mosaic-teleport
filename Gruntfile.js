@@ -22,7 +22,6 @@ module.exports = function(grunt) {
                 },
                 options : {
                     external : [ 'underscore', 'mosaic-commons' ],
-                    required : [ 'mosaic-commons' ],
                     alias : [ 'src/index.js:<%= pkg.name %>' ]
                 }
             }
