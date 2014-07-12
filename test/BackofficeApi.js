@@ -81,9 +81,11 @@ _.extend(BackofficeApi.prototype, {
             if (!projectName) {
                 that.throwError(501, 'Project name is not defined');
             }
+            var description = params.description || '';
             var project = {
+                id : _.uniqueId('project-'),
                 name : projectName,
-                id : _.uniqueId('project-')
+                description : description,
             };
             that.projects[project.id] = project;
             return project;
@@ -91,11 +93,15 @@ _.extend(BackofficeApi.prototype, {
     },
 
     /** Returns a list of all projects. */
-    listProjects : function(params) {
+    loadProjects : function(params) {
         var that = this;
         return P.then(function() {
             params = that._checkSession(params);
-            return _.values(that.projects);
+            var list = _.values(that.projects);
+            list = _.sortBy(list, function(a, b) {
+                return a.name > b.name ? 1 : a.name < b.name ? -1 : 0;
+            });
+            return list;
         });
     },
 
@@ -103,11 +109,11 @@ _.extend(BackofficeApi.prototype, {
      * Returns information about a project corresponding to the specified
      * identifier.
      */
-    getProjectInfo : function(params) {
+    loadProject : function(params) {
         var that = this;
         return P.then(function() {
             params = that._checkSession(params);
-            var projectId = params.projectId;
+            var projectId = params.id;
             if (!projectId) {
                 that.throwError(501, 'Project identifier is not defined');
             }
@@ -122,11 +128,11 @@ _.extend(BackofficeApi.prototype, {
     },
 
     /** Saves an existing project with new parameters. */
-    saveProjectInfo : function(params) {
+    saveProject : function(params) {
         var that = this;
         return P.then(function() {
             // TODO: Check access rights for modifications
-            return that.getProjectInfo(params).then(function(project) {
+            return that.loadProject(params).then(function(project) {
                 project.name = params.name;
                 project.description = params.description;
                 return project;
