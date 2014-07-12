@@ -4,7 +4,7 @@
   "main": "src/index.js",
   "licenses": [
     {
-      "type": "BSD"
+      "type": "MIT"
     }
   ],
   "contributors": [
@@ -16,11 +16,14 @@
   "dependencies": {
     "underscore": "~1.4.4",
     "when": "*",
-    "mosaic-commons": "~0.0.1"
+    "mosaic-commons": "~0.0.1",
+    "superagent": "^0.18.2"
   },
   "devDependencies": {
     "mocha": "*",
     "expect.js": "*",
+    "express": "~4.6.0",
+    "body-parser": "^1.4.3",
     "grunt": "^0.4.5",
     "grunt-contrib-jshint": "^0.10.0",
     "grunt-contrib-nodeunit": "~0.3.3",
@@ -30,18 +33,23 @@
     "grunt-contrib-watch": "^0.6.1",
     "grunt-browserify": "^2.1.3",
     "browserify": "^4.2.0",
-    "browserify-shim": "^3.6.0"
+    "browserify-shim": "^3.6.0",
+    "cookie-parser": "^1.3.2"
   },
   "scripts": {
     "test": "mocha -R spec ./test/Test*"
   },
-  "browser" : {
-      "mosaic-commons" : "node_modules/mosaic-commons/dist/mosaic-commons.js"
+  "browser": {
+    "mosaic-commons": "node_modules/mosaic-commons/dist/mosaic-commons.js",
+    "superagent": "node_modules/superagent/superagent.js"
   },
-  "browserify-shim" : {
-      "underscore" : "global:Mosaic.libs.underscore"
+  "browserify-shim": {
+    "underscore": "global:Mosaic.libs.underscore",
+    "superagent": "global:Mosaic.libs.superagent"
   },
-  "browserify" : {
-      "transform" : [ "browserify-shim" ]
+  "browserify": {
+    "transform": [
+      "browserify-shim"
+    ]
   }
 }

@@ -6,47 +6,160 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
     "use strict";
 
     var Mosaic = module.exports = require('mosaic-commons');
+    require('./Mosaic.ApiDescriptor');
+    var _ = (typeof window !== "undefined" ? window.Mosaic.libs.underscore : typeof global !== "undefined" ? global.Mosaic.libs.underscore : null);
+    var Superagent = (typeof window !== "undefined" ? window.Mosaic.libs.superagent : typeof global !== "undefined" ? global.Mosaic.libs.superagent : null);
+
+    Mosaic.ApiDescriptor.SuperagentClientStub = // 
+    Mosaic.ApiDescriptor.HttpClientStub.extend({
+        initialize : function(options) {
+            if (!options.descriptor)
+                throw Mosaic.Errors.newError('API descriptor is not defined');
+            this.client = Superagent.agent();
+            var init = this.class.parent.prototype.initialize;
+            init.call(this, options.descriptor, options);
+        },
+        _http : function(req, res, callback) {
+            var method = req.method;
+            if (method == 'delete') {
+                method = 'del';
+            }
+            var agent = this.client[method](req.url);
+            _.each(req.headers, function(value, key) {
+                agent = agent.set(key, value);
+            });
+            agent = agent.send(req.body);
+            agent.end(function(err, r) {
+                try {
+                    res.status = r.status;
+                    _.extend(res.headers, r.headers || {});
+                    res.body = r.body;
+                    callback(err);
+                } catch (e) {
+                    callback(e);
+                }
+            });
+        }
+    });
+
+})(require);
+
+}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./Mosaic.ApiDescriptor":3}],3:[function(require,module,exports){
+(function (global){
+(function(require) {
+    "use strict";
+
+    var Mosaic = module.exports = require('mosaic-commons');
     require('./Mosaic.PathMapper');
     var _ = (typeof window !== "undefined" ? window.Mosaic.libs.underscore : typeof global !== "undefined" ? global.Mosaic.libs.underscore : null);
 
-    var P = Mosaic.P;
-    var Class = Mosaic.Class;
-    var PathMapper = Mosaic.PathMapper;
-    var Errors = Mosaic.Errors;
-
-    var ApiDescriptor = Mosaic.ApiDescriptor = Class.extend({
+    /**
+     * This descriptor defines API instance methods and their mapping to HTTP
+     * URLs and parameters.
+     */
+    Mosaic.ApiDescriptor = Mosaic.Class.extend({
+        /** Initializes this instance */
         initialize : function() {
             this._config = {};
-            this.mapper = new PathMapper();
+            this.mapper = new Mosaic.PathMapper();
         },
+        /**
+         * Defines a new API method, the corresponding REST path and the
+         * corresponding HTTP method (GET, POST, PUT, DELETE...)
+         * 
+         * @param pathMask
+         *            path of the endpoint corresponding to this API method;
+         *            this path can contain parameters (like
+         *            '/users/:userId/name') which are automatically transformed
+         *            to/from method arguments.
+         * @param http
+         *            name of the HTTP method used to invoke this API function
+         *            (GET, POST, PUT, DELETE...)
+         * @param method
+         *            the name of the API function to invoke
+         * 
+         */
         add : function(pathMask, http, method) {
             var conf = this._config[pathMask] = this._config[pathMask] || {};
             conf[http] = method;
             this.mapper.add(pathMask, conf);
             return this;
         },
+
+        /**
+         * Returns a description of the method to invoke corresponding to the
+         * specified path.
+         */
         get : function(path) {
             return this.mapper.find(path);
         }
     });
 
-    var HttpServerStub = ApiDescriptor.HttpServerStub = Class
+    var Handler = Mosaic.Class.extend({
+        /**
+         * Wraps the "handle" method of this class - adds notifications before
+         * and after that calls.
+         */
+        _wrapHandleMethod : function(handle) {
+            return function(req, res) {
+                var that = this;
+                return Mosaic.P.fin(Mosaic.P.then(function() {
+                    return that._beginHttpCall({
+                        req : req, // HTTP request
+                        res : res, // HTTP response
+                        stub : that, // Server or client stub
+                    });
+                }).then(function() {
+                    return handle.call(that, req, res);
+                }), function(err, result) {
+                    return that._endHttpCall({
+                        req : req, // HTTP request
+                        res : res, // HTTP response
+                        stub : that, // Server or client stub
+                        err : err, // HTTP error
+                        result : result, // Execution result
+                    });
+                });
+            };
+        },
+        _beginHttpCall : function(params) {
+            if (_.isFunction(this.options.beginHttpCall)) {
+                this.options.beginHttpCall(params);
+            }
+        },
+        _endHttpCall : function(params) {
+            if (_.isFunction(this.options.endHttpCall)) {
+                this.options.endHttpCall(params);
+            }
+        },
+    });
+
+    /**
+     * Http server stub redirecting server-side calls to the real API
+     * implementation described by an Mosaic.ApiDescriptor instance.
+     */
+    Mosaic.ApiDescriptor.HttpServerStub = Handler
             .extend({
-                initialize : function(descriptor, options) {
-                    this.options = options || {};
-                    this.descriptor = descriptor;
+                initialize : function(options) {
+                    this.setOptions(options);
+                    if (!options.descriptor)
+                        throw Mosaic.Errors.newError(501,
+                                'API descriptor is not defined');
+                    this.descriptor = options.descriptor;
+                    this._doHandle = this._wrapHandleMethod(this._doHandle);
                 },
                 handle : function(req, res) {
                     var that = this;
-                    P.then(function() {
+                    return Mosaic.P.then(function() {
                         return that._doHandle(req, res);
                     }).then(function(obj) {
                         res.send(200, obj || '');
                     }, function(err) {
-                        var errObj = Errors.toJSON(err);
-                        var code = errObj.code || 500;
+                        var errObj = Mosaic.Errors.toJSON(err);
+                        var code = errObj.status || 500;
                         res.send(code, errObj);
-                    }).done();
+                    });
                 },
                 _getInstance : function(req, res, method, urlParams) {
                     var options = this.options || {};
@@ -54,16 +167,22 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
                     return instance;
                 },
                 _callMethod : function(method, urlParams, req, res) {
-                    var instance = this._getInstance(req, res, method,
+                    var that = this;
+                    var instance = that._getInstance(req, res, method,
                             urlParams);
                     var f = instance[method];
                     if (!f) {
-                        throw Errors.newError(
+                        throw Mosaic.Errors.newError(
                                 'Method "' + method + '" is not implemented')
                                 .code(500);
                     }
-                    var params = _.extend({}, req.query, req.body, urlParams);
+                    var params = that._getMethodParams(method, urlParams, req,
+                            res);
                     return f.call(instance, params);
+                },
+                _getMethodParams : function(method, urlParams, req, res) {
+                    return _.extend({}, req.query, req.body, req.cookies,
+                            urlParams);
                 },
                 _doHandle : function(req, res) {
                     var that = this;
@@ -71,12 +190,12 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
                     var http = req.method.toLowerCase();
                     var conf = that.descriptor.get(path);
                     if (!conf) {
-                        throw Errors.newError('Path not found "' + path + '"')
-                                .code(404);
+                        throw Mosaic.Errors.newError(
+                                'Path not found "' + path + '"').code(404);
                     }
                     var methodName = conf.obj[http];
                     if (!methodName) {
-                        throw Errors.newError(
+                        throw Mosaic.Errors.newError(
                                 'HTTP method "' + http.toUpperCase() + //
                                 '" is not supported. Path: "' + path + '".')
                                 .code(404);
@@ -108,12 +227,17 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
                 }
             });
 
-    var HttpClientStub = ApiDescriptor.HttpClientStub = Class.extend({
+    /**
+     * Http client stub generating API methods based on an Mosaic.ApiDescriptor
+     * instance and forwarding all method calls to a remote server by HTTP.
+     */
+    Mosaic.ApiDescriptor.HttpClientStub = Handler.extend({
         initialize : function(descriptor, options) {
             this.descriptor = descriptor;
-            this.options = options || {};
+            this.setOptions(options);
             var that = this;
-            var config = this.descriptor._config;
+            this.handle = this._wrapHandleMethod(this.handle);
+            var config = that.descriptor._config;
             _.each(config, function(obj, path) {
                 _.each(obj, function(methodName, http) {
                     that[methodName] = function(params) {
@@ -126,7 +250,7 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
         },
         _newHttpRequest : function(path, method, params) {
             params = params || {};
-            var expandedPath = PathMapper.formatPath(path, params);
+            var expandedPath = Mosaic.PathMapper.formatPath(path, params);
             var url = this._toUrl(expandedPath);
             return {
                 id : _.uniqueId('req-'),
@@ -146,15 +270,10 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
                 error : null
             };
         },
-        _beginHttpCall : function(req, res) {
-        },
-        _endHttpCall : function(req, res) {
-        },
         handle : function(req, res) {
             var that = this;
-            var defer = P.defer();
+            var defer = Mosaic.P.defer();
             try {
-                that._beginHttpCall(req, res);
                 that._http(req, res, function(error) {
                     try {
                         if (!error) {
@@ -162,21 +281,19 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
                             category = parseInt(category) * 100;
                             if (category != 200) {
                                 if (res.body && res.body.trace) {
-                                    error = Errors.fromJSON(res.body).code(
-                                            res.status);
-                                } else {
-                                    error = Errors.newError('' + res.status)
+                                    error = Mosaic.Errors.fromJSON(res.body)
                                             .code(res.status);
+                                } else {
+                                    error = Mosaic.Errors.newError(
+                                            '' + res.status).code(res.status);
                                 }
                             }
                         }
                         if (error) {
                             throw error;
                         }
-                        that._endHttpCall(req, res);
                         defer.resolve(res.body);
                     } catch (err) {
-                        that._endHttpCall(req, res);
                         defer.reject(err);
                     }
                 });
@@ -191,16 +308,15 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
             return baseUrl + path;
         },
         _http : function(req, res, callback) {
-            callback(new Error('Not implemented'));
+            var err = Mosaic.Errors.newError('Not implemented');
+            callback(err);
         },
     });
-
-    Mosaic.ApiDescriptor = ApiDescriptor;
 
 })(require);
 
 }).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./Mosaic.PathMapper":3}],3:[function(require,module,exports){
+},{"./Mosaic.PathMapper":4}],4:[function(require,module,exports){
 (function (global){
 (function module(require) {
     "use strict";
@@ -319,5 +435,6 @@ module.exports=require('H99CHA');
 module.exports = require('mosaic-commons');
 require('./Mosaic.ApiDescriptor');
 require('./Mosaic.PathMapper');
+require('./Mosaic.ApiDescriptor.SuperagentClientStub');
 
-},{"./Mosaic.ApiDescriptor":2,"./Mosaic.PathMapper":3}]},{},["H99CHA"]);
+},{"./Mosaic.ApiDescriptor":3,"./Mosaic.ApiDescriptor.SuperagentClientStub":2,"./Mosaic.PathMapper":4}]},{},["H99CHA"]);
