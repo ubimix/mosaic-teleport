@@ -133,7 +133,7 @@ describe('Local API', function() {
             setSessionInfo : function(info) {
                 this.sessionId = info.sessionId;
             }
-        }
+        };
         var api = new Api();
         testApi(api, options).then(done, done).done();
     });
@@ -210,7 +210,7 @@ describe('Remote API', function() {
             },
             setSessionInfo : function(info) {
             }
-        }
+        };
         testApi(clientApi, options).then(done, done).done();
     });
 });

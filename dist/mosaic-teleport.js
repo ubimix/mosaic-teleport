@@ -31,9 +31,15 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
             agent = agent.send(req.body);
             agent.end(function(err, r) {
                 try {
-                    res.status = r.status;
-                    _.extend(res.headers, r.headers || {});
-                    res.body = r.body;
+                    if (r) {
+                        res.status = r.status;
+                        _.extend(res.headers, r.headers || {});
+                        res.body = r.body;
+                    } else if (err && err.status) {
+                        res.status = err.status;
+                    } else {
+                        res.status = 500;
+                    }
                     callback(err);
                 } catch (e) {
                     callback(e);

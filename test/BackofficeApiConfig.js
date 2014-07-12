@@ -12,4 +12,4 @@ module.exports = function() {
     d.add('/project/:id', 'post', 'saveProject');
     d.add('/projects', 'get', 'loadProjects');
     return d;
-}
+};
