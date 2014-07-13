@@ -140,6 +140,36 @@ describe('mosaic-teleport/PathMapper - Extraction', function() {
             },
             obj : 'Hello World'
         });
+    });
+
+    it('should be able to add and remove paths', function() {
+        var mapper = new PathMapper();
+        mapper.add('/project/:project/user/:user', 'Project + User');
+        mapper.add('/project/:project', 'Project Only');
+        mapper.add('/foo-:id', 'FFooBar');
+        mapper.add('/:toto/:tata', 'Toto Tata');
+        mapper.add('/hello/*world', 'Hello World');
+
+        var obj = mapper.find('/hello/myWorld');
+        expect(obj).to.eql({
+            params : {
+                toto : 'hello',
+                tata : 'myWorld'
+            },
+            obj : 'Toto Tata'
+        });
+
+        var removed = mapper.remove('/:toto/:tata');
+        expect(removed).to.eql('Toto Tata');
+
+        obj = mapper.find('/hello/myWorld');
+        expect(obj).to.eql({
+            params : {
+                world : 'myWorld'
+            },
+            obj : 'Hello World'
+        });
 
     });
+
 });

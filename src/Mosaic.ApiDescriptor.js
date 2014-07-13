@@ -94,9 +94,10 @@
             .extend({
                 initialize : function(options) {
                     this.setOptions(options);
-                    if (!options.descriptor)
+                    if (!options.descriptor) {
                         throw Mosaic.Errors.newError(501,
                                 'API descriptor is not defined');
+                    }
                     this.descriptor = options.descriptor;
                     this._doHandle = this._wrapHandleMethod(this._doHandle);
                 },
