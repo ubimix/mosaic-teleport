@@ -1,4 +1,4 @@
-(function(require) {
+(function(module, require) {
     "use strict";
 
     var Mosaic = module.exports = require('mosaic-commons');
@@ -74,11 +74,21 @@
                 });
             };
         },
+        /**
+         * This method is called just before calling an API method. By default
+         * this method try to call the 'beginHttpCall' method defined (if any)
+         * in the constructor parameters.
+         */
         _beginHttpCall : function(params) {
             if (_.isFunction(this.options.beginHttpCall)) {
                 this.options.beginHttpCall(params);
             }
         },
+        /**
+         * This method is invoked just after calling an API method. By default
+         * this method try to call the 'endHttpCall' method defined (if any) in
+         * the constructor parameters.
+         */
         _endHttpCall : function(params) {
             if (_.isFunction(this.options.endHttpCall)) {
                 this.options.endHttpCall(params);
@@ -87,11 +97,28 @@
     });
 
     /**
-     * Http server stub redirecting server-side calls to the real API
+     * HTTP server stub redirecting server-side calls to the real API
      * implementation described by an Mosaic.ApiDescriptor instance.
      */
     Mosaic.ApiDescriptor.HttpServerStub = Handler
             .extend({
+
+                /**
+                 * Initializes this object and checks that the specified options
+                 * contain an API descriptor.
+                 * 
+                 * @param options.descriptor
+                 *            a mandatory API descriptor defining all methods
+                 *            exposed via REST endpoints; this descriptor
+                 *            defines mapping of path parameters and used HTTP
+                 *            methods to call methods
+                 * @param options.instance
+                 *            an instance implementing the API; all remote API
+                 *            calls are delegated to this object; if this
+                 *            parameter is not defined then this instance is
+                 *            used instead; see also the "_getInstance" method
+                 *            of this class.
+                 */
                 initialize : function(options) {
                     this.setOptions(options);
                     if (!options.descriptor) {
@@ -101,6 +128,16 @@
                     this.descriptor = options.descriptor;
                     this._doHandle = this._wrapHandleMethod(this._doHandle);
                 },
+
+                /**
+                 * Handles the specified HTTP request by calling a method
+                 * corresponding to the request path.
+                 * 
+                 * @param req
+                 *            an HTTP request
+                 * @param res
+                 *            an HTTP response
+                 */
                 handle : function(req, res) {
                     var that = this;
                     return Mosaic.P.then(function() {
@@ -113,29 +150,11 @@
                         res.send(code, errObj);
                     });
                 },
-                _getInstance : function(req, res, method, urlParams) {
-                    var options = this.options || {};
-                    var instance = options.instance || this;
-                    return instance;
-                },
-                _callMethod : function(method, urlParams, req, res) {
-                    var that = this;
-                    var instance = that._getInstance(req, res, method,
-                            urlParams);
-                    var f = instance[method];
-                    if (!f) {
-                        throw Mosaic.Errors.newError(
-                                'Method "' + method + '" is not implemented')
-                                .code(500);
-                    }
-                    var params = that._getMethodParams(method, urlParams, req,
-                            res);
-                    return f.call(instance, params);
-                },
-                _getMethodParams : function(method, urlParams, req, res) {
-                    return _.extend({}, req.query, req.body, req.cookies,
-                            urlParams);
-                },
+
+                /**
+                 * Handles the specified HTTP request. This method is used by
+                 * the "handle" method to perform real actions.
+                 */
                 _doHandle : function(req, res) {
                     var that = this;
                     var path = that._getPath(req);
@@ -152,8 +171,72 @@
                                 '" is not supported. Path: "' + path + '".')
                                 .code(404);
                     }
-                    return that._callMethod(methodName, conf.params, req, res);
+                    return that._callMethod(req, res, methodName, conf.params);
                 },
+
+                /**
+                 * Returns an instance where the specified method should be
+                 * invoked.
+                 * 
+                 * @param req
+                 *            HTTP request object
+                 * @param res
+                 *            HTTP response object
+                 * @param method
+                 *            the method to invoke
+                 * @param urlParams
+                 *            parameters defined in the URL path
+                 */
+                _getInstance : function(req, res, method, urlParams) {
+                    var options = this.options || {};
+                    var instance = options.instance || this;
+                    return instance;
+                },
+                /**
+                 * Calls the specified method on the API implementation
+                 * instance.
+                 * 
+                 * @param req
+                 *            HTTP request object
+                 * @param res
+                 *            HTTP response object
+                 * @param method
+                 *            the method to invoke
+                 * @param urlParams
+                 *            parameters defined in the URL path
+                 */
+                _callMethod : function(req, res, method, urlParams) {
+                    var that = this;
+                    var instance = that._getInstance(req, res, method,
+                            urlParams);
+                    var f = instance[method];
+                    if (!f) {
+                        throw Mosaic.Errors.newError(
+                                'Method "' + method + '" is not implemented')
+                                .code(500);
+                    }
+                    var params = that._getMethodParams(method, urlParams, req,
+                            res);
+                    return f.call(instance, params);
+                },
+                /**
+                 * This method aggregates all parameters defined in the HTTP
+                 * request and transforms them in the parameter object used to
+                 * invoke an API method. This method merges together parameters
+                 * defined in the URL path, explicit request parameters, request
+                 * body and request cookies. This method could be overloaded to
+                 * re-define a set of parameters for methods.
+                 */
+                _getMethodParams : function(method, urlParams, req, res) {
+                    return _.extend({}, req.query, req.body, req.cookies,
+                            urlParams);
+                },
+
+                /**
+                 * Returns a path corresponding to the specified request. This
+                 * path is used to find an API method to invoke. Used internally
+                 * by the "_doHandle" method.
+                 */
                 _getPath : function(req) {
                     var path = req.path;
                     if (!path || path === '') {
@@ -184,11 +267,32 @@
      * instance and forwarding all method calls to a remote server by HTTP.
      */
     Mosaic.ApiDescriptor.HttpClientStub = Handler.extend({
-        initialize : function(descriptor, options) {
-            this.descriptor = descriptor;
-            this.setOptions(options);
+
+        /**
+         * Initializes this object and checks that the specified options contain
+         * an API descriptor and a base URL of the API endpoint to invoke.
+         * 
+         * @param options.descriptor
+         *            a mandatory API descriptor defining all methods exposed
+         *            via REST endpoints; this descriptor defines mapping of
+         *            path parameters and used HTTP methods to call methods
+         * @param options.baseUrl
+         *            a base URL of the HTTP endpoint implementing the API
+         *            defined by the descriptor.
+         */
+        initialize : function(options) {
+            if (!options.descriptor) {
+                throw Mosaic.Errors.newError(501,
+                        'API descriptor is not defined');
+            }
+            if (!options.baseUrl) {
+                throw Mosaic.Errors.newError(501, '"baseUrl" is empty; ' + // 
+                'API endpoint URL is not defined');
+            }
             var that = this;
-            this.handle = this._wrapHandleMethod(this.handle);
+            that.descriptor = options.descriptor;
+            that.setOptions(options);
+            that.handle = that._wrapHandleMethod(that.handle);
             var config = that.descriptor._config;
             _.each(config, function(obj, path) {
                 _.each(obj, function(methodName, http) {
@@ -200,6 +304,11 @@
                 });
             });
         },
+
+        /**
+         * Create a request object containing URL to invoke, method to invoke,
+         * query parameters, HTTP headers and the main body.
+         */
         _newHttpRequest : function(path, method, params) {
             params = params || {};
             var expandedPath = Mosaic.PathMapper.formatPath(path, params);
@@ -213,6 +322,11 @@
                 body : params || {}
             };
         },
+
+        /**
+         * Creates and returns a new response object corresponding to the
+         * specified request.
+         */
         _newHttpResponse : function(req) {
             return {
                 id : req.id,
@@ -222,6 +336,11 @@
                 error : null
             };
         },
+
+        /**
+         * Handles the specified request to the remote API method and returns a
+         * promise with the response.
+         */
         handle : function(req, res) {
             var that = this;
             var defer = Mosaic.P.defer();
@@ -254,15 +373,27 @@
             }
             return defer.promise;
         },
+
+        /**
+         * Transforms the specified path to the full URL. This method uses the
+         * "baseUrl" parameter defined in the constructor to build the full
+         * endpoint URL.
+         */
         _toUrl : function(path) {
             var options = this.options || {};
             var baseUrl = options.baseUrl || '';
             return baseUrl + path;
         },
+
+        /**
+         * This method should implement a real HTTP call and return results
+         * using the specified callback method. First parameter of this callback
+         * is an error and the second parameter is the result of the call. This
+         * method should be overloaded in subclasses.
+         */
         _http : function(req, res, callback) {
             var err = Mosaic.Errors.newError('Not implemented');
             callback(err);
         },
     });
-
-})(require);
+})(module, require);

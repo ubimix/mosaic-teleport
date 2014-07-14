@@ -38,18 +38,5 @@
   },
   "scripts": {
     "test": "mocha -R spec ./test/Test*"
-  },
-  "browser": {
-    "mosaic-commons": "node_modules/mosaic-commons/dist/mosaic-commons.js",
-    "superagent": "node_modules/superagent/superagent.js"
-  },
-  "browserify-shim": {
-    "underscore": "global:Mosaic.libs.underscore",
-    "superagent": "global:Mosaic.libs.superagent"
-  },
-  "browserify": {
-    "transform": [
-      "browserify-shim"
-    ]
   }
 }

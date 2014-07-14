@@ -1,4 +1,4 @@
-(function(require) {
+(function(module, require) {
     "use strict";
 
     var Mosaic = module.exports = require('mosaic-commons');
@@ -9,11 +9,9 @@
     Mosaic.ApiDescriptor.SuperagentClientStub = // 
     Mosaic.ApiDescriptor.HttpClientStub.extend({
         initialize : function(options) {
-            if (!options.descriptor)
-                throw Mosaic.Errors.newError('API descriptor is not defined');
-            this.client = Superagent.agent();
             var init = this.class.parent.prototype.initialize;
-            init.call(this, options.descriptor, options);
+            init.call(this, options);
+            this.client = Superagent.agent();
         },
         _http : function(req, res, callback) {
             var method = req.method;
@@ -44,4 +42,4 @@
         }
     });
 
-})(require);
+})(module, require);

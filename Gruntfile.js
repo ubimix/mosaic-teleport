@@ -13,16 +13,14 @@ module.exports = function(grunt) {
             }
         },
         browserify : {
-            bundleOptions : {
-                standalone : '<%= pkg.name %>'
-            },
-            app : {
-                files : {
-                    './dist/<%= pkg.name %>.js' : [ 'src/index.js' ]
-                },
+            standalone : {
+                src : [ 'src/index.js' ],
+                dest : './dist/<%= pkg.name %>.js',
                 options : {
-                    external : [ 'underscore', 'mosaic-commons' ],
-                    alias : [ 'src/index.js:<%= pkg.name %>' ]
+                    exclude : [ 'underscore', 'superagent', 'mosaic-commons' ],
+                    bundleOptions : {
+                        standalone : '<%= pkg.name %>'
+                    }
                 }
             }
         },

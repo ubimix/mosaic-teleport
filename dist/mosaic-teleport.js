@@ -1,23 +1,18 @@
-require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-
-},{}],2:[function(require,module,exports){
-(function (global){
-(function(require) {
+!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var o;"undefined"!=typeof window?o=window:"undefined"!=typeof global?o=global:"undefined"!=typeof self&&(o=self),o.mosaicTeleport=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
+(function(module, _dereq_) {
     "use strict";
 
-    var Mosaic = module.exports = require('mosaic-commons');
-    require('./Mosaic.ApiDescriptor');
-    var _ = (typeof window !== "undefined" ? window.Mosaic.libs.underscore : typeof global !== "undefined" ? global.Mosaic.libs.underscore : null);
-    var Superagent = (typeof window !== "undefined" ? window.Mosaic.libs.superagent : typeof global !== "undefined" ? global.Mosaic.libs.superagent : null);
+    var Mosaic = module.exports = _dereq_('mosaic-commons');
+    _dereq_('./Mosaic.ApiDescriptor');
+    var _ = _dereq_('underscore');
+    var Superagent = _dereq_('superagent');
 
     Mosaic.ApiDescriptor.SuperagentClientStub = // 
     Mosaic.ApiDescriptor.HttpClientStub.extend({
         initialize : function(options) {
-            if (!options.descriptor)
-                throw Mosaic.Errors.newError('API descriptor is not defined');
-            this.client = Superagent.agent();
             var init = this.class.parent.prototype.initialize;
-            init.call(this, options.descriptor, options);
+            init.call(this, options);
+            this.client = Superagent.agent();
         },
         _http : function(req, res, callback) {
             var method = req.method;
@@ -48,17 +43,15 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
         }
     });
 
-})(require);
+})(module, _dereq_);
 
-}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./Mosaic.ApiDescriptor":3}],3:[function(require,module,exports){
-(function (global){
-(function(require) {
+},{"./Mosaic.ApiDescriptor":2}],2:[function(_dereq_,module,exports){
+(function(module, _dereq_) {
     "use strict";
 
-    var Mosaic = module.exports = require('mosaic-commons');
-    require('./Mosaic.PathMapper');
-    var _ = (typeof window !== "undefined" ? window.Mosaic.libs.underscore : typeof global !== "undefined" ? global.Mosaic.libs.underscore : null);
+    var Mosaic = module.exports = _dereq_('mosaic-commons');
+    _dereq_('./Mosaic.PathMapper');
+    var _ = _dereq_('underscore');
 
     /**
      * This descriptor defines API instance methods and their mapping to HTTP
@@ -129,11 +122,21 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
                 });
             };
         },
+        /**
+         * This method is called just before calling an API method. By default
+         * this method try to call the 'beginHttpCall' method defined (if any)
+         * in the constructor parameters.
+         */
         _beginHttpCall : function(params) {
             if (_.isFunction(this.options.beginHttpCall)) {
                 this.options.beginHttpCall(params);
             }
         },
+        /**
+         * This method is invoked just after calling an API method. By default
+         * this method try to call the 'endHttpCall' method defined (if any) in
+         * the constructor parameters.
+         */
         _endHttpCall : function(params) {
             if (_.isFunction(this.options.endHttpCall)) {
                 this.options.endHttpCall(params);
@@ -142,11 +145,28 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
     });
 
     /**
-     * Http server stub redirecting server-side calls to the real API
+     * HTTP server stub redirecting server-side calls to the real API
      * implementation described by an Mosaic.ApiDescriptor instance.
      */
     Mosaic.ApiDescriptor.HttpServerStub = Handler
             .extend({
+
+                /**
+                 * Initializes this object and checks that the specified options
+                 * contain an API descriptor.
+                 * 
+                 * @param options.descriptor
+                 *            a mandatory API descriptor defining all methods
+                 *            exposed via REST endpoints; this descriptor
+                 *            defines mapping of path parameters and used HTTP
+                 *            methods to call methods
+                 * @param options.instance
+                 *            an instance implementing the API; all remote API
+                 *            calls are delegated to this object; if this
+                 *            parameter is not defined then this instance is
+                 *            used instead; see also the "_getInstance" method
+                 *            of this class.
+                 */
                 initialize : function(options) {
                     this.setOptions(options);
                     if (!options.descriptor) {
@@ -156,6 +176,16 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
                     this.descriptor = options.descriptor;
                     this._doHandle = this._wrapHandleMethod(this._doHandle);
                 },
+
+                /**
+                 * Handles the specified HTTP request by calling a method
+                 * corresponding to the request path.
+                 * 
+                 * @param req
+                 *            an HTTP request
+                 * @param res
+                 *            an HTTP response
+                 */
                 handle : function(req, res) {
                     var that = this;
                     return Mosaic.P.then(function() {
@@ -168,29 +198,11 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
                         res.send(code, errObj);
                     });
                 },
-                _getInstance : function(req, res, method, urlParams) {
-                    var options = this.options || {};
-                    var instance = options.instance || this;
-                    return instance;
-                },
-                _callMethod : function(method, urlParams, req, res) {
-                    var that = this;
-                    var instance = that._getInstance(req, res, method,
-                            urlParams);
-                    var f = instance[method];
-                    if (!f) {
-                        throw Mosaic.Errors.newError(
-                                'Method "' + method + '" is not implemented')
-                                .code(500);
-                    }
-                    var params = that._getMethodParams(method, urlParams, req,
-                            res);
-                    return f.call(instance, params);
-                },
-                _getMethodParams : function(method, urlParams, req, res) {
-                    return _.extend({}, req.query, req.body, req.cookies,
-                            urlParams);
-                },
+
+                /**
+                 * Handles the specified HTTP request. This method is used by
+                 * the "handle" method to perform real actions.
+                 */
                 _doHandle : function(req, res) {
                     var that = this;
                     var path = that._getPath(req);
@@ -207,8 +219,72 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
                                 '" is not supported. Path: "' + path + '".')
                                 .code(404);
                     }
-                    return that._callMethod(methodName, conf.params, req, res);
+                    return that._callMethod(req, res, methodName, conf.params);
                 },
+
+                /**
+                 * Returns an instance where the specified method should be
+                 * invoked.
+                 * 
+                 * @param req
+                 *            HTTP request object
+                 * @param res
+                 *            HTTP response object
+                 * @param method
+                 *            the method to invoke
+                 * @param urlParams
+                 *            parameters defined in the URL path
+                 */
+                _getInstance : function(req, res, method, urlParams) {
+                    var options = this.options || {};
+                    var instance = options.instance || this;
+                    return instance;
+                },
+                /**
+                 * Calls the specified method on the API implementation
+                 * instance.
+                 * 
+                 * @param req
+                 *            HTTP request object
+                 * @param res
+                 *            HTTP response object
+                 * @param method
+                 *            the method to invoke
+                 * @param urlParams
+                 *            parameters defined in the URL path
+                 */
+                _callMethod : function(req, res, method, urlParams) {
+                    var that = this;
+                    var instance = that._getInstance(req, res, method,
+                            urlParams);
+                    var f = instance[method];
+                    if (!f) {
+                        throw Mosaic.Errors.newError(
+                                'Method "' + method + '" is not implemented')
+                                .code(500);
+                    }
+                    var params = that._getMethodParams(method, urlParams, req,
+                            res);
+                    return f.call(instance, params);
+                },
+                /**
+                 * This method aggregates all parameters defined in the HTTP
+                 * request and transforms them in the parameter object used to
+                 * invoke an API method. This method merges together parameters
+                 * defined in the URL path, explicit request parameters, request
+                 * body and request cookies. This method could be overloaded to
+                 * re-define a set of parameters for methods.
+                 */
+                _getMethodParams : function(method, urlParams, req, res) {
+                    return _.extend({}, req.query, req.body, req.cookies,
+                            urlParams);
+                },
+
+                /**
+                 * Returns a path corresponding to the specified request. This
+                 * path is used to find an API method to invoke. Used internally
+                 * by the "_doHandle" method.
+                 */
                 _getPath : function(req) {
                     var path = req.path;
                     if (!path || path === '') {
@@ -239,11 +315,32 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
      * instance and forwarding all method calls to a remote server by HTTP.
      */
     Mosaic.ApiDescriptor.HttpClientStub = Handler.extend({
-        initialize : function(descriptor, options) {
-            this.descriptor = descriptor;
-            this.setOptions(options);
+
+        /**
+         * Initializes this object and checks that the specified options contain
+         * an API descriptor and a base URL of the API endpoint to invoke.
+         * 
+         * @param options.descriptor
+         *            a mandatory API descriptor defining all methods exposed
+         *            via REST endpoints; this descriptor defines mapping of
+         *            path parameters and used HTTP methods to call methods
+         * @param options.baseUrl
+         *            a base URL of the HTTP endpoint implementing the API
+         *            defined by the descriptor.
+         */
+        initialize : function(options) {
+            if (!options.descriptor) {
+                throw Mosaic.Errors.newError(501,
+                        'API descriptor is not defined');
+            }
+            if (!options.baseUrl) {
+                throw Mosaic.Errors.newError(501, '"baseUrl" is empty; ' + // 
+                'API endpoint URL is not defined');
+            }
             var that = this;
-            this.handle = this._wrapHandleMethod(this.handle);
+            that.descriptor = options.descriptor;
+            that.setOptions(options);
+            that.handle = that._wrapHandleMethod(that.handle);
             var config = that.descriptor._config;
             _.each(config, function(obj, path) {
                 _.each(obj, function(methodName, http) {
@@ -255,6 +352,11 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
                 });
             });
         },
+
+        /**
+         * Create a request object containing URL to invoke, method to invoke,
+         * query parameters, HTTP headers and the main body.
+         */
         _newHttpRequest : function(path, method, params) {
             params = params || {};
             var expandedPath = Mosaic.PathMapper.formatPath(path, params);
@@ -268,6 +370,11 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
                 body : params || {}
             };
         },
+
+        /**
+         * Creates and returns a new response object corresponding to the
+         * specified request.
+         */
         _newHttpResponse : function(req) {
             return {
                 id : req.id,
@@ -277,6 +384,11 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
                 error : null
             };
         },
+
+        /**
+         * Handles the specified request to the remote API method and returns a
+         * promise with the response.
+         */
         handle : function(req, res) {
             var that = this;
             var defer = Mosaic.P.defer();
@@ -309,191 +421,206 @@ require=(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof requ
             }
             return defer.promise;
         },
+
+        /**
+         * Transforms the specified path to the full URL. This method uses the
+         * "baseUrl" parameter defined in the constructor to build the full
+         * endpoint URL.
+         */
         _toUrl : function(path) {
             var options = this.options || {};
             var baseUrl = options.baseUrl || '';
             return baseUrl + path;
         },
+
+        /**
+         * This method should implement a real HTTP call and return results
+         * using the specified callback method. First parameter of this callback
+         * is an error and the second parameter is the result of the call. This
+         * method should be overloaded in subclasses.
+         */
         _http : function(req, res, callback) {
             var err = Mosaic.Errors.newError('Not implemented');
             callback(err);
         },
     });
+})(module, _dereq_);
 
-})(require);
+},{"./Mosaic.PathMapper":3}],3:[function(_dereq_,module,exports){
+(function(module, _dereq_) {
+    "use strict";
 
-}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./Mosaic.PathMapper":4}],4:[function(require,module,exports){
-(function (global){
-var Mosaic = module.exports = require('mosaic-commons');
-var _ = (typeof window !== "undefined" ? window.Mosaic.libs.underscore : typeof global !== "undefined" ? global.Mosaic.libs.underscore : null);
-
-/**
- * This class is used to map path masks to objects. It allows to find nearest
- * object matching to the given path. This class is useful to implement call
- * routers.
- */
-var PathMapper = Mosaic.PathMapper = Mosaic.Class.extend({
-
-    /** Initialization of this object. */
-    initialize : function() {
-        var that = this;
-        that.handlers = [];
-    },
+    var Mosaic = module.exports = _dereq_('mosaic-commons');
+    var _ = _dereq_('underscore');
 
     /**
-     * Adds a new object to this mapper.
-     * 
-     * @param mask
-     *            path mask used to dispatch to this object
-     * @param obj
-     *            the object to add
+     * This class is used to map path masks to objects. It allows to find
+     * nearest object matching to the given path. This class is useful to
+     * implement call routers.
      */
-    add : function(mask, obj) {
-        var that = this;
-        var chunks = [];
-        var names = [];
-        var a = false;
-        _.each(mask.split('*'), function(segment) {
-            var b = false;
-            _.each(segment.split(':'), function(str) {
-                if (!a && !b) {
-                    chunks.push(esc(str));
-                } else if (a || b) {
-                    var idx = str.indexOf('/');
-                    var r = b ? '[^\/]+' : '.*?';
-                    if (idx >= 0) {
-                        chunks.push(wrap(r));
-                        names.push(str.substring(0, idx));
-                        chunks.push(esc(str.substring(idx)));
-                    } else {
-                        chunks.push(wrap(r));
-                        names.push(str);
+    var PathMapper = Mosaic.PathMapper = Mosaic.Class.extend({
+
+        /** Initialization of this object. */
+        initialize : function() {
+            var that = this;
+            that.handlers = [];
+        },
+
+        /**
+         * Adds a new object to this mapper.
+         * 
+         * @param mask
+         *            path mask used to dispatch to this object
+         * @param obj
+         *            the object to add
+         */
+        add : function(mask, obj) {
+            var that = this;
+            var chunks = [];
+            var names = [];
+            var a = false;
+            _.each(mask.split('*'), function(segment) {
+                var b = false;
+                _.each(segment.split(':'), function(str) {
+                    if (!a && !b) {
+                        chunks.push(esc(str));
+                    } else if (a || b) {
+                        var idx = str.indexOf('/');
+                        var r = b ? '[^\/]+' : '.*?';
+                        if (idx >= 0) {
+                            chunks.push(wrap(r));
+                            names.push(str.substring(0, idx));
+                            chunks.push(esc(str.substring(idx)));
+                        } else {
+                            chunks.push(wrap(r));
+                            names.push(str);
+                        }
                     }
+                    b = true;
+                });
+                a = true;
+            });
+            var str = chunks.join('');
+            var regexp = new RegExp('^' + str + '$');
+            that.handlers.push({
+                mask : mask,
+                regexp : regexp,
+                names : names,
+                obj : obj
+            });
+        },
+
+        /**
+         * Finds and returns a nearest object corresponding to the given path.
+         * This method returns an object with two fields: 1) The 'obj' field
+         * contains the found object 2) The 'params' field contains all found
+         * path parameters (defined in the initial path mask used to register
+         * this object).
+         */
+        find : function(path) {
+            var that = this;
+            var result = null;
+            _.any(that.handlers, function(handler) {
+                if (!handler.regexp.test(path))
+                    return;
+                var params = {};
+                var array = handler.regexp.exec(path).slice(1);
+                var idx = 0;
+                _.each(array, function(param) {
+                    var name = handler.names[idx++];
+                    var value = param ? decodeURIComponent(param) : null;
+                    params[name] = value;
+                });
+                result = {
+                    params : params,
+                    obj : handler.obj
+                };
+                return true;
+            });
+            return result;
+        },
+
+        /**
+         * Removes and returns the mapped object corresponding to the specified
+         * path mask.
+         */
+        remove : function(mask) {
+            var that = this;
+            var result = null;
+            var removed = null;
+            that.handlers = _.filter(that.handlers, function(handler) {
+                var keep = true;
+                if (handler.mask === mask) {
+                    removed = handler.obj;
+                    keep = false;
                 }
-                b = true;
+                return keep;
             });
-            a = true;
-        });
-        var str = chunks.join('');
-        var regexp = new RegExp('^' + str + '$');
-        that.handlers.push({
-            mask : mask,
-            regexp : regexp,
-            names : names,
-            obj : obj
-        });
-    },
+            return removed;
+        }
+
+    });
 
     /**
-     * Finds and returns a nearest object corresponding to the given path. This
-     * method returns an object with two fields: 1) The 'obj' field contains the
-     * found object 2) The 'params' field contains all found path parameters
-     * (defined in the initial path mask used to register this object).
+     * A static method used to format a string based on the given path mask and
+     * specified parameters.
      */
-    find : function(path) {
-        var that = this;
-        var result = null;
-        _.any(that.handlers, function(handler) {
-            if (!handler.regexp.test(path))
-                return;
-            var params = {};
-            var array = handler.regexp.exec(path).slice(1);
-            var idx = 0;
-            _.each(array, function(param) {
-                var name = handler.names[idx++];
-                var value = param ? decodeURIComponent(param) : null;
-                params[name] = value;
-            });
-            result = {
-                params : params,
-                obj : handler.obj
-            };
-            return true;
-        });
-        return result;
-    },
-
-    /**
-     * Removes and returns the mapped object corresponding to the specified path
-     * mask.
-     */
-    remove : function(mask) {
-        var that = this;
-        var result = null;
-        var removed = null;
-        that.handlers = _.filter(that.handlers, function(handler) {
-            var keep = true;
-            if (handler.mask === mask) {
-                removed = handler.obj;
-                keep = false;
-            }
-            return keep;
-        });
-        return removed;
-    }
-
-});
-
-/**
- * A static method used to format a string based on the given path mask and
- * specified parameters.
- */
-PathMapper.formatPath = function(mask, params) {
-    params = params || {};
-    var array = mask.split(/[:\*]/gim);
-    var path = [];
-    for (var i = 0; i < array.length; i++) {
-        var segment = array[i];
-        if (i === 0) {
-            if (segment !== '') {
-                path.push(segment);
-            }
-        } else {
-            var name = null;
-            var idx = segment.indexOf('/');
-            if (idx >= 0) {
-                name = segment.substring(0, idx);
-                segment = segment.substring(idx);
+    PathMapper.formatPath = function(mask, params) {
+        params = params || {};
+        var array = mask.split(/[:\*]/gim);
+        var path = [];
+        for (var i = 0; i < array.length; i++) {
+            var segment = array[i];
+            if (i === 0) {
+                if (segment !== '') {
+                    path.push(segment);
+                }
             } else {
-                name = segment;
-                segment = null;
-            }
-            var value = params[name];
-            if (!value) {
-                var msg = 'Required parameter "' + name + '" not defined.';
-                var err = new Error(msg);
-                err._code = 400;
-                throw err;
-            }
-            delete params[name];
-            path.push(value);
-            if (segment && segment !== '') {
-                path.push(segment);
+                var name = null;
+                var idx = segment.indexOf('/');
+                if (idx >= 0) {
+                    name = segment.substring(0, idx);
+                    segment = segment.substring(idx);
+                } else {
+                    name = segment;
+                    segment = null;
+                }
+                var value = params[name];
+                if (!value) {
+                    var msg = 'Required parameter "' + name + '" not defined.';
+                    var err = new Error(msg);
+                    err._code = 400;
+                    throw err;
+                }
+                delete params[name];
+                path.push(value);
+                if (segment && segment !== '') {
+                    path.push(segment);
+                }
             }
         }
+        return path.join('');
+    };
+
+    /** Regular expression used to find and replace special symbols. */
+    var escapeRegExp = /[\-{}\[\]+?.,\\\^$|#\s]/g;
+    /** Escapes the specified string */
+    function esc(str) {
+        return str.replace(escapeRegExp, '\\$&');
     }
-    return path.join('');
-};
+    /** Transforms the given string in a Regexp group. */
+    function wrap(str) {
+        return '(' + str + ')';
+    }
 
-/** Regular expression used to find and replace special symbols. */
-var escapeRegExp = /[\-{}\[\]+?.,\\\^$|#\s]/g;
-/** Escapes the specified string */
-function esc(str) {
-    return str.replace(escapeRegExp, '\\$&');
-}
-/** Transforms the given string in a Regexp group. */
-function wrap(str) {
-    return '(' + str + ')';
-}
+})(module, _dereq_);
 
-}).call(this,typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],"mosaic-teleport":[function(require,module,exports){
-module.exports=require('H99CHA');
-},{}],"H99CHA":[function(require,module,exports){
-module.exports = require('mosaic-commons');
-require('./Mosaic.ApiDescriptor');
-require('./Mosaic.PathMapper');
-require('./Mosaic.ApiDescriptor.SuperagentClientStub');
+},{}],4:[function(_dereq_,module,exports){
+module.exports = _dereq_('mosaic-commons');
+_dereq_('./Mosaic.ApiDescriptor');
+_dereq_('./Mosaic.PathMapper');
+_dereq_('./Mosaic.ApiDescriptor.SuperagentClientStub');
 
-},{"./Mosaic.ApiDescriptor":3,"./Mosaic.ApiDescriptor.SuperagentClientStub":2,"./Mosaic.PathMapper":4}]},{},["H99CHA"]);
+},{"./Mosaic.ApiDescriptor":2,"./Mosaic.ApiDescriptor.SuperagentClientStub":1,"./Mosaic.PathMapper":3}]},{},[4])
+(4)
+});
