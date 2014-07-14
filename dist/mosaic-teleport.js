@@ -58,16 +58,18 @@
      * URLs and parameters.
      */
     Mosaic.ApiDescriptor = Mosaic.Class.extend({
+
         /** Initializes this instance */
         initialize : function() {
             this._config = {};
-            this.mapper = new Mosaic.PathMapper();
+            this._mapper = new Mosaic.PathMapper();
         },
+
         /**
          * Defines a new API method, the corresponding REST path and the
          * corresponding HTTP method (GET, POST, PUT, DELETE...)
          * 
-         * @param pathMask
+         * @param path
          *            path of the endpoint corresponding to this API method;
          *            this path can contain parameters (like
          *            '/users/:userId/name') which are automatically transformed
@@ -79,10 +81,16 @@
          *            the name of the API function to invoke
          * 
          */
-        add : function(pathMask, http, method) {
-            var conf = this._config[pathMask] = this._config[pathMask] || {};
+        add : function(path, http, method) {
+            if (_.isObject(path)) {
+                var obj = path;
+                path = obj.path;
+                http = obj.http;
+                method = obj.method;
+            }
+            var conf = this._config[path] = this._config[path] || {};
             conf[http] = method;
-            this.mapper.add(pathMask, conf);
+            this._mapper.add(path, conf);
             return this;
         },
 
@@ -91,10 +99,94 @@
          * specified path.
          */
         get : function(path) {
-            return this.mapper.find(path);
+            return this._mapper.find(path);
+        },
+
+        /** Exports the content of this descriptor as a JSON object. */
+        exportJson : function() {
+            var result = [];
+            var that = this;
+            _.each(that._config, function(conf, path) {
+                _.each(conf, function(method, http) {
+                    result.push({
+                        path : path,
+                        http : http,
+                        method : method
+                    });
+                });
+            });
+            return result;
+        },
+
+        /** Imports the content of this descriptor from a JSON array. */
+        importJson : function(json) {
+            var that = this;
+            var array = _.toArray(json);
+            _.each(array, function(conf) {
+                that.add(conf);
+            });
+        }
+
+    });
+
+    /** Static methods */
+    _.extend(Mosaic.ApiDescriptor, {
+
+        /**
+         * Automatically creates an API descriptor by reading properties
+         * associated with methods of the specified class. If a method has
+         * string properties "http" and "path" then they are used to create a
+         * new entry for an API descriptor ("path", "http" and "method").
+         */
+        getDescriptor : function(service) {
+            var descriptor = new Mosaic.ApiDescriptor();
+            var json = Mosaic.ApiDescriptor.getDescriptorJson(service);
+            descriptor.importJson(json);
+            return descriptor;
+        },
+
+        /**
+         * Automatically creates a JSON object containing definition of the API.
+         * If a method of the specified class has string properties "http" and
+         * "path" then they are used to create a new entry for an API descriptor
+         * ("path", "http" and "method").
+         */
+        getDescriptorJson : function(service) {
+            var result = [];
+            service = _.isFunction(service) ? service.prototype : service;
+            _.each(_.functions(service), function(name) {
+                var method = service[name];
+                if (!method.http || !method.path)
+                    return;
+                var obj = {
+                    method : name,
+                    http : method.http,
+                    path : method.path
+                };
+                result.push(obj);
+            });
+            return result;
+        },
+
+        /**
+         * This method is used to bind "path" and "http" properties to the given
+         * class method. These properties are used to automatically create a
+         * Mosaic.ApiDescriptor instance from class (see the
+         * Mosaic.ApiDescriptor.getDescriptor and
+         * Mosaic.ApiDescriptor.getDescriptorJson).
+         */
+        bind : function(path, http, method) {
+            method.http = http;
+            method.path = path;
+            return method;
         }
     });
 
+    /**
+     * A common superclass for client/server handlers
+     * (Mosaic.ApiDescriptor.HttpClientStub and
+     * Mosaic.ApiDescriptor.HttpServerStub) executing API method calls.
+     */
     var Handler = Mosaic.Class.extend({
         /**
          * Wraps the "handle" method of this class - adds notifications before
@@ -122,6 +214,7 @@
                 });
             };
         },
+
         /**
          * This method is called just before calling an API method. By default
          * this method try to call the 'beginHttpCall' method defined (if any)
@@ -132,6 +225,7 @@
                 this.options.beginHttpCall(params);
             }
         },
+
         /**
          * This method is invoked just after calling an API method. By default
          * this method try to call the 'endHttpCall' method defined (if any) in
@@ -156,10 +250,13 @@
                  * contain an API descriptor.
                  * 
                  * @param options.descriptor
-                 *            a mandatory API descriptor defining all methods
-                 *            exposed via REST endpoints; this descriptor
-                 *            defines mapping of path parameters and used HTTP
-                 *            methods to call methods
+                 *            an API descriptor defining all methods exposed via
+                 *            REST endpoints; this descriptor defines mapping of
+                 *            path parameters and used HTTP methods to call
+                 *            methods; if there is no descriptor then this
+                 *            method tries to automatically create a new one
+                 *            from the "options.instance" field using the
+                 *            "Mosaic.ApiDescriptor.getDescriptor".
                  * @param options.instance
                  *            an instance implementing the API; all remote API
                  *            calls are delegated to this object; if this
@@ -169,11 +266,12 @@
                  */
                 initialize : function(options) {
                     this.setOptions(options);
-                    if (!options.descriptor) {
-                        throw Mosaic.Errors.newError(501,
-                                'API descriptor is not defined');
+                    this.descriptor = this.options.descriptor;
+                    if (!this.descriptor) {
+                        var instance = this.options.instance || this;
+                        this.descriptor = Mosaic.ApiDescriptor
+                                .getDescriptor(instance);
                     }
-                    this.descriptor = options.descriptor;
                     this._doHandle = this._wrapHandleMethod(this._doHandle);
                 },
 
