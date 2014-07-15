@@ -242,171 +242,176 @@
      * HTTP server stub redirecting server-side calls to the real API
      * implementation described by an Mosaic.ApiDescriptor instance.
      */
-    Mosaic.ApiDescriptor.HttpServerStub = Handler
-            .extend({
+    Mosaic.ApiDescriptor.HttpServerStub = Handler.extend({
 
-                /**
-                 * Initializes this object and checks that the specified options
-                 * contain an API descriptor.
-                 * 
-                 * @param options.descriptor
-                 *            an API descriptor defining all methods exposed via
-                 *            REST endpoints; this descriptor defines mapping of
-                 *            path parameters and used HTTP methods to call
-                 *            methods; if there is no descriptor then this
-                 *            method tries to automatically create a new one
-                 *            from the "options.instance" field using the
-                 *            "Mosaic.ApiDescriptor.getDescriptor".
-                 * @param options.instance
-                 *            an instance implementing the API; all remote API
-                 *            calls are delegated to this object; if this
-                 *            parameter is not defined then this instance is
-                 *            used instead; see also the "_getInstance" method
-                 *            of this class.
-                 */
-                initialize : function(options) {
-                    this.setOptions(options);
-                    this.descriptor = this.options.descriptor;
-                    if (!this.descriptor) {
-                        var instance = this.options.instance || this;
-                        this.descriptor = Mosaic.ApiDescriptor
-                                .getDescriptor(instance);
-                    }
-                    this._doHandle = this._wrapHandleMethod(this._doHandle);
-                },
+        /**
+         * Initializes this object and checks that the specified options contain
+         * an API descriptor.
+         * 
+         * @param options.descriptor
+         *            an API descriptor defining all methods exposed via REST
+         *            endpoints; this descriptor defines mapping of path
+         *            parameters and used HTTP methods to call methods; if there
+         *            is no descriptor then this method tries to automatically
+         *            create a new one from the "options.instance" field using
+         *            the "Mosaic.ApiDescriptor.getDescriptor".
+         * @param options.instance
+         *            an instance implementing the API; all remote API calls are
+         *            delegated to this object; if this parameter is not defined
+         *            then this instance is used instead; see also the
+         *            "_getInstance" method of this class.
+         */
+        initialize : function(options) {
+            this.setOptions(options);
+            this.descriptor = this.options.descriptor;
+            if (!this.descriptor) {
+                var instance = this.options.instance || this;
+                this.descriptor = Mosaic.ApiDescriptor.getDescriptor(instance);
+            }
+            this._doHandle = this._wrapHandleMethod(this._doHandle);
+        },
 
-                /**
-                 * Handles the specified HTTP request by calling a method
-                 * corresponding to the request path.
-                 * 
-                 * @param req
-                 *            an HTTP request
-                 * @param res
-                 *            an HTTP response
-                 */
-                handle : function(req, res) {
-                    var that = this;
-                    return Mosaic.P.then(function() {
-                        return that._doHandle(req, res);
-                    }).then(function(obj) {
-                        res.send(200, obj || '');
-                    }, function(err) {
-                        var errObj = Mosaic.Errors.toJSON(err);
-                        var code = errObj.status || 500;
-                        res.send(code, errObj);
-                    });
-                },
+        /**
+         * Returns an internal descriptor corresponding to this server stub.
+         */
+        getDescriptor : function() {
+            return this.descriptor;
+        },
 
-                /**
-                 * Handles the specified HTTP request. This method is used by
-                 * the "handle" method to perform real actions.
-                 */
-                _doHandle : function(req, res) {
-                    var that = this;
-                    var path = that._getPath(req);
-                    var http = req.method.toLowerCase();
-                    var conf = that.descriptor.get(path);
-                    if (!conf) {
-                        throw Mosaic.Errors.newError(
-                                'Path not found "' + path + '"').code(404);
-                    }
-                    var methodName = conf.obj[http];
-                    if (!methodName) {
-                        throw Mosaic.Errors.newError(
-                                'HTTP method "' + http.toUpperCase() + //
-                                '" is not supported. Path: "' + path + '".')
-                                .code(404);
-                    }
-                    return that._callMethod(req, res, methodName, conf.params);
-                },
-
-                /**
-                 * Returns an instance where the specified method should be
-                 * invoked.
-                 * 
-                 * @param req
-                 *            HTTP request object
-                 * @param res
-                 *            HTTP response object
-                 * @param method
-                 *            the method to invoke
-                 * @param urlParams
-                 *            parameters defined in the URL path
-                 */
-                _getInstance : function(req, res, method, urlParams) {
-                    var options = this.options || {};
-                    var instance = options.instance || this;
-                    return instance;
-                },
-                /**
-                 * Calls the specified method on the API implementation
-                 * instance.
-                 * 
-                 * @param req
-                 *            HTTP request object
-                 * @param res
-                 *            HTTP response object
-                 * @param method
-                 *            the method to invoke
-                 * @param urlParams
-                 *            parameters defined in the URL path
-                 */
-                _callMethod : function(req, res, method, urlParams) {
-                    var that = this;
-                    var instance = that._getInstance(req, res, method,
-                            urlParams);
-                    var f = instance[method];
-                    if (!f) {
-                        throw Mosaic.Errors.newError(
-                                'Method "' + method + '" is not implemented')
-                                .code(500);
-                    }
-                    var params = that._getMethodParams(method, urlParams, req,
-                            res);
-                    return f.call(instance, params);
-                },
-                /**
-                 * This method aggregates all parameters defined in the HTTP
-                 * request and transforms them in the parameter object used to
-                 * invoke an API method. This method merges together parameters
-                 * defined in the URL path, explicit request parameters, request
-                 * body and request cookies. This method could be overloaded to
-                 * re-define a set of parameters for methods.
-                 */
-                _getMethodParams : function(method, urlParams, req, res) {
-                    return _.extend({}, req.query, req.body, req.cookies,
-                            urlParams);
-                },
-
-                /**
-                 * Returns a path corresponding to the specified request. This
-                 * path is used to find an API method to invoke. Used internally
-                 * by the "_doHandle" method.
-                 */
-                _getPath : function(req) {
-                    var path = req.path;
-                    if (!path || path === '') {
-                        var url = req.url || '';
-                        // path = url.replace(/^.*(\/.*)[?#\/].*/i, '$1');
-                        var idx = url.indexOf('?');
-                        if (idx >= 0) {
-                            url = url.substring(0, idx);
-                        }
-                        idx = url.indexOf('#');
-                        if (idx >= 0) {
-                            url = url.substring(0, idx);
-                        }
-                        idx = url.indexOf('/');
-                        if (idx > 0) {
-                            url = url.substring(idx);
-                        }
-                        path = url;
-                    }
-                    var options = this.options || {};
-                    var prefix = options.pathPrefix || '';
-                    return path.substring(prefix.length);
-                }
+        /**
+         * Handles the specified HTTP request by calling a method corresponding
+         * to the request path.
+         * 
+         * @param req
+         *            an HTTP request
+         * @param res
+         *            an HTTP response
+         */
+        handle : function(req, res) {
+            var that = this;
+            return Mosaic.P.then(function() {
+                return that._doHandle(req, res);
+            }).then(function(obj) {
+                res.send(200, obj || '');
+            }, function(err) {
+                var errObj = Mosaic.Errors.toJSON(err);
+                errObj.status = errObj.status || 500;
+                res.send(errObj.status, errObj);
             });
+        },
+
+        /**
+         * Handles the specified HTTP request. This method is used by the
+         * "handle" method to perform real actions.
+         */
+        _doHandle : function(req, res) {
+            var that = this;
+            var path = that._getPath(req);
+            var http = req.method.toLowerCase();
+            var conf = that.descriptor.get(path);
+            if (!conf) {
+                throw Mosaic.Errors.newError('Path not found "' + path + '"')
+                        .code(404);
+            }
+            var methodName = conf.obj[http];
+            if (!methodName) {
+                throw Mosaic.Errors//
+                .newError('HTTP method "' + http.toUpperCase() + //
+                '" is not supported. Path: "' + path + '".').code(404);
+            }
+            return that._callMethod(req, res, methodName, conf.params);
+        },
+
+        /**
+         * Returns an instance where the specified method should be invoked.
+         * 
+         * @param req
+         *            HTTP request object
+         * @param res
+         *            HTTP response object
+         * @param method
+         *            the method to invoke
+         * @param urlParams
+         *            parameters defined in the URL path
+         */
+        _getInstance : function(req, res, method, urlParams) {
+            var options = this.options || {};
+            var instance = options.instance || this;
+            return instance;
+        },
+
+        /**
+         * Calls the specified method on the API implementation instance.
+         * 
+         * @param req
+         *            HTTP request object
+         * @param res
+         *            HTTP response object
+         * @param method
+         *            the method to invoke
+         * @param urlParams
+         *            parameters defined in the URL path
+         */
+        _callMethod : function(req, res, method, urlParams) {
+            var that = this;
+            var instance = that._getInstance(req, res, method, urlParams);
+            var f = instance[method];
+            if (!f) {
+                throw Mosaic.Errors.newError(//
+                'Method "' + method + '" is not implemented')//
+                .code(500);
+            }
+            var params = that._getMethodParams(method, urlParams, req, res);
+            return f.call(instance, params);
+        },
+
+        /**
+         * This method aggregates all parameters defined in the HTTP request and
+         * transforms them in the parameter object used to invoke an API method.
+         * This method merges together parameters defined in the URL path,
+         * explicit request parameters, request body and request cookies. This
+         * method could be overloaded to re-define a set of parameters for
+         * methods.
+         */
+        _getMethodParams : function(method, urlParams, req, res) {
+            return _.extend({}, req.query, req.body, req.cookies, urlParams);
+        },
+
+        /**
+         * Returns a path corresponding to the specified request. This path is
+         * used to find an API method to invoke. Used internally by the
+         * "_doHandle" method.
+         */
+        _getPath : function(req) {
+            var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
+            var options = this.options || {};
+            var prefix = options.pathPrefix || '';
+            return path.substring(prefix.length);
+        }
+    });
+
+    /** Extract and returns path from the given request object. */
+    Mosaic.ApiDescriptor.HttpServerStub.getPath = function(req) {
+        var path = req.path;
+        if (!path || path === '') {
+            var url = req.url || '';
+            // path = url.replace(/^.*(\/.*)[?#\/].*/i, '$1');
+            var idx = url.indexOf('?');
+            if (idx >= 0) {
+                url = url.substring(0, idx);
+            }
+            idx = url.indexOf('#');
+            if (idx >= 0) {
+                url = url.substring(0, idx);
+            }
+            idx = url.indexOf('/');
+            if (idx > 0) {
+                url = url.substring(idx);
+            }
+            path = url;
+        }
+        return path;
+    };
 
     /**
      * Http client stub generating API methods based on an Mosaic.ApiDescriptor
@@ -544,7 +549,176 @@
     });
 })(module, _dereq_);
 
-},{"./Mosaic.PathMapper":3}],3:[function(_dereq_,module,exports){
+},{"./Mosaic.PathMapper":4}],3:[function(_dereq_,module,exports){
+(function(module, _dereq_) {
+    "use strict";
+
+    var _ = _dereq_('underscore');
+    var Mosaic = _dereq_('mosaic-commons');
+    _dereq_('./Mosaic.PathMapper');
+    _dereq_('./Mosaic.ApiDescriptor');
+
+    var PathMapper = Mosaic.PathMapper;
+
+    /**
+     * API dispatcher provides mapping between path prefixes and instances
+     * implementing server endpoints.
+     */
+    Mosaic.ApiDispatcher = Mosaic.Class.extend({
+
+        /**
+         * Initializes this object.
+         * 
+         * @param options.pathPrefix
+         *            this path prefix is added to all endpoints
+         */
+        initialize : function(options) {
+            this.setOptions(options);
+            this.options.pathPrefix = this
+                    ._normalizePath(this.options.pathPrefix);
+            this._mapping = new Mosaic.PathMapper();
+        },
+
+        /**
+         * Binds a new service to the path prefix.
+         * 
+         * @param options.path
+         *            path prefix corresponding to the service methods
+         * @param options.instance
+         *            instance of the service instance handling requests
+         */
+        addEndpoint : function(options) {
+            var that = this;
+            if (!options.instance) {
+                throw Mosaic.Errors
+                        .newError('API implementation is not defined');
+            }
+            if (!options.path) {
+                throw Mosaic.Errors.newError('Path is not defined');
+            }
+            var path = this._getPath(options.path);
+            options.path = path;
+            var handler = new Mosaic.ApiDescriptor.HttpServerStub(options);
+            var mask = path + '*prefix';
+            that._mapping.add(mask, handler);
+        },
+
+        /**
+         * Registers this API dispatcher with an express web application.
+         */
+        register : function(app) {
+            var that = this;
+            var prefix = (that.options.pathPrefix || '') + '/*';
+            app.all(prefix, function(req, res) {
+                that.handle(req, res).done();
+            });
+        },
+
+        /**
+         * Handles the specified request by dispatching it to registered API
+         * endpoints.
+         */
+        handle : function(req, res) {
+            var that = this;
+            return Mosaic.P.then(function() {
+                var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
+                var obj = that._find(path);
+                if (!obj) {
+                    throw Mosaic.Errors.newError(404, //
+                    'API handler not found. Path: "' + path + '".');
+                } else {
+                    var handler = obj.obj;
+                    if (that._isEndpointInfoPath(path)) {
+                        var json = that._getDescriptorJson(handler);
+                        res.send(200, json);
+                    } else {
+                        return handler.handle(req, res);
+                    }
+                }
+            }).then(null, function(err) {
+                var errObj = Mosaic.Errors.toJSON(err);
+                errObj.status = errObj.status || 500;
+                res.send(errObj.status, errObj);
+            });
+        },
+
+        /**
+         * Returns a JSON description corresponding to the specified path.
+         */
+        getDescriptorJson : function(path) {
+            var that = this;
+            var obj = that._find(path);
+            if (!obj)
+                return null;
+            var handler = obj.obj;
+            return that._getDescriptorJson(handler);
+        },
+
+        /**
+         * Returns true if the specified path corresponds to an API description
+         * endpoint. IE this endpoint should send a JSON description of all API
+         * methods available with this path prefix.
+         */
+        _isEndpointInfoPath : function(path) {
+            var suffix = '.info';
+            return (path.lastIndexOf(suffix) === path.length - suffix.length);
+        },
+
+        /** Returns a JSON descriptor for the specified handler */
+        _getDescriptorJson : function(handler) {
+            var that = this;
+            var descriptor = handler.getDescriptor();
+            return {
+                endpoint : handler.options.path,
+                api : descriptor.exportJson()
+            };
+        },
+
+        /**
+         * Finds and returns an API handler configuration corresponding to the
+         * specified path.
+         * 
+         * @return an object containing the following fields: 1) "prefix" path
+         *         part of the endpoint 2) "obj" the handler object (an
+         *         Mosaic.ApiDescriptor.HttpServerStub instance)
+         */
+        _find : function(path) {
+            path = this._normalizePath(path);
+            var obj = this._mapping.find(path);
+            return obj;
+        },
+
+        /** Returns a normalized and prefixed path. */
+        _getPath : function(path) {
+            var that = this;
+            var prefix = that.options.pathPrefix;
+            path = prefix + that._normalizePath(path);
+            return path;
+        },
+
+        /**
+         * Normalizes paths - add the first slash and remove a trail separator.
+         * If the specified path is empty (or null) then this method returns an
+         * empty string.
+         */
+        _normalizePath : function(path) {
+            if (!path || path === '') {
+                path = '';
+            } else {
+                if (path[0] != '/') {
+                    path = '/' + path;
+                }
+                if (path[path.length - 1] === '/') {
+                    path = path.substring(0, path.length - 1);
+                }
+            }
+            return path;
+        }
+    });
+
+})(module, _dereq_);
+
+},{"./Mosaic.ApiDescriptor":2,"./Mosaic.PathMapper":4}],4:[function(_dereq_,module,exports){
 (function(module, _dereq_) {
     "use strict";
 
@@ -713,12 +887,13 @@
 
 })(module, _dereq_);
 
-},{}],4:[function(_dereq_,module,exports){
+},{}],5:[function(_dereq_,module,exports){
 module.exports = _dereq_('mosaic-commons');
 _dereq_('./Mosaic.ApiDescriptor');
 _dereq_('./Mosaic.PathMapper');
 _dereq_('./Mosaic.ApiDescriptor.SuperagentClientStub');
+_dereq_('./Mosaic.ApiDispatcher');
 
-},{"./Mosaic.ApiDescriptor":2,"./Mosaic.ApiDescriptor.SuperagentClientStub":1,"./Mosaic.PathMapper":3}]},{},[4])
-(4)
+},{"./Mosaic.ApiDescriptor":2,"./Mosaic.ApiDescriptor.SuperagentClientStub":1,"./Mosaic.ApiDispatcher":3,"./Mosaic.PathMapper":4}]},{},[5])
+(5)
 });

@@ -3,11 +3,14 @@ var _ = require('underscore');
 
 module.exports = {
     startServer : startServer,
-    newClient : newClient
+    newServer : newServer,
+    newClient : newClient,
+    newApiDescriptorBuilder : newApiDescriptorBuilder
 };
 
 function getPort(options) {
-    return options.port || 1337;
+    options = options || {};
+    return options.port || 1234;
 }
 function newClient(options) {
     options.baseUrl = 'http://localhost:' + //
@@ -17,37 +20,7 @@ function newClient(options) {
     return client;
 }
 
-var HandlerDispatcher = Mosaic.Class.extend({
-    initialize : function(options) {
-        this.setOptions(options);
-        _.defaults(this.options, {
-            dir : './'
-        });
-        this.map = new Mosaic.PathMapper();
-    },
-
-    addEndpoint : function(options) {
-        var that = this;
-        if (!options.pathPrefix) {
-            throw Mosaic.Errors.newError(400,
-                    'The "pathPrefix" parameter is not defined.');
-        }
-        if (!options.descriptor) {
-            throw new Mosaic.Errors.newError(400,
-                    'API descriptor is not defined.');
-        }
-        if (!options.instance) {
-            throw new Mosaic.Errors.newError(400,
-                    'API implementation is not defined.');
-        }
-        var handler = new Mosaic.ApiDescriptor.HttpServerStub(options);
-        var mask = pathPrefix + '*path';
-        that.map.add(mask, handler);
-    }
-
-});
-
-function startServer(options) {
+function newServer(callback) {
     var deferred = Mosaic.P.defer();
     try {
         // Load the Express framework and related parsers
@@ -62,19 +35,29 @@ function startServer(options) {
         }));
         app.use(bodyParser.json());
         app.use(cookieParser('optional secret string'));
+        var options = callback(app) || {};
+        var port = getPort(options);
+        var server = app.listen(port, function() {
+            deferred.resolve(server);
+        });
+    } catch (err) {
+        deferred.reject(err);
+    }
+    return deferred.promise;
+}
 
+function newApiDescriptorBuilder(options) {
+    return function(app) {
         // Create and register an API stub handling requests
         var handler = new Mosaic.ApiDescriptor.HttpServerStub(options);
         var prefix = (options.pathPrefix || '') + '/*';
         app.all(prefix, function(req, res) {
             handler.handle(req, res).done();
         });
+        return options;
+    };
+}
 
-        // Start the server
-        var port = getPort(options);
-        app.listen(port, Mosaic.P.nresolver(deferred));
-    } catch (err) {
-        deferred.reject(err);
-    }
-    return deferred.promise;
+function startServer(options) {
+    return newServer(newApiDescriptorBuilder(options));
 }

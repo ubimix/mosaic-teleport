@@ -25,79 +25,78 @@ describe('Local API', function() {
     });
 });
 
-describe('Remote API', function() {
-    var clientApi;
-    var server;
-    var client;
-    beforeEach(function(done) {
-        var serverInstance = new Api();
-        var options = {
-            descriptor : new ApiConfig(),
-            pathPrefix : '/toto'
-        };
-        var serverOptions = _.extend({}, options, {
-            instance : serverInstance,
-            beginHttpCall : function(params) {
-                // Get the session ID from the request header
-                var sessionId = params.req.get('x-session-id');
-                if (sessionId) {
-                    // Put the content of the session ID in the query;
-                    // So this value became available to API instance
-                    // methods.
-                    params.req.query.sessionId = sessionId;
-                }
-            },
-            endHttpCall : function(params) {
-                var sessionId = params.result ? params.result.sessionId : null;
-                if (sessionId) {
-                    // Set a sessionId header
-                    params.res.set('x-session-id', sessionId);
-                    // params.res.cookie(''x-session-id', sessionId);
-                }
-            },
-        });
-        var clientOptions = _.extend({}, options, {
-            beginHttpCall : function(params) {
-                // Get the session ID from the stub object and set this value in
-                // the HTTP header to send it to the server.
-                var sessionId = params.stub.sessionId;
-                if (sessionId) {
-                    params.req.headers['x-session-id'] = sessionId;
-                }
-            },
-            endHttpCall : function(params) {
-                // Load the session ID from headers and save it
-                // as a field in the stub.
-                var sessionId = params.res.headers['x-session-id'];
-                if (sessionId) {
-                    params.stub.sessionId = sessionId;
-                }
-            },
-        });
-        Utils.startServer(serverOptions).then(function(srv) {
-            server = srv;
-            clientApi = Utils.newClient(clientOptions);
-            done();
-        }, done).done();
-    });
-    afterEach(function() {
+function closeServer(server, done) {
+    Mosaic.P.then(function() {
         if (server) {
-            var s = server;
-            server = null;
-            s.close();
+            server.close();
+            return Mosaic.P.pause(100);
         }
+    }).then(function() {
+        console.log('server closed!');
+    }).then(done, done).done();
+}
+
+describe('Remote API', function() {
+    // This test don't keep session ID explicitly. The session ID
+    // transferred back and forth in the 'x-session-id' HTTP header.
+    var options = {
+        descriptor : new ApiConfig(),
+        pathPrefix : '/toto'
+    };
+    var serverOptions = _.extend({}, options, {
+        instance : new Api(),
+        beginHttpCall : function(params) {
+            // Get the session ID from the request header
+            var sessionId = params.req.get('x-session-id');
+            if (sessionId) {
+                // Put the content of the session ID in the query;
+                // So this value became available to API instance
+                // methods.
+                params.req.query.sessionId = sessionId;
+            }
+        },
+        endHttpCall : function(params) {
+            var sessionId = params.result ? params.result.sessionId : null;
+            if (sessionId) {
+                // Set a sessionId header
+                params.res.set('x-session-id', sessionId);
+                // params.res.cookie(''x-session-id', sessionId);
+            }
+        },
+    });
+    var clientOptions = _.extend({}, options, {
+        beginHttpCall : function(params) {
+            // Get the session ID from the stub object and set this value in
+            // the HTTP header to send it to the server.
+            var sessionId = params.stub.sessionId;
+            if (sessionId) {
+                params.req.headers['x-session-id'] = sessionId;
+            }
+        },
+        endHttpCall : function(params) {
+            // Load the session ID from headers and save it
+            // as a field in the stub.
+            var sessionId = params.res.headers['x-session-id'];
+            if (sessionId) {
+                params.stub.sessionId = sessionId;
+            }
+        },
     });
     it('should be able to launch a remote API instance', function(done) {
-        // This test don't keep session ID explicitly. The session ID
-        // transferred back and forth in the 'x-session-id' HTTP header.
-        var options = {
-            prepareParams : function(params) {
-                return _.extend({}, params);
-            },
-            setSessionInfo : function(info) {
-            }
-        };
-        testApi(clientApi, options).then(done, done).done();
+        withServer(Utils.newApiDescriptorBuilder(serverOptions),
+                function test(server) {
+                    var client = Utils.newClient(clientOptions);
+                    var options = {
+                        prepareParams : function(params) {
+                            return _.extend({}, params);
+                        },
+                        setSessionInfo : function(info) {
+                        }
+                    };
+                    return testApi(client, options);
+                })//
+        .then(done, done).done();
+
     });
 });
 
@@ -111,42 +110,41 @@ describe('Mosaic.ApiDescriptor - automatic API instantiation', function() {
                     };
                 })
     });
-    var server;
-    var client;
-    beforeEach(function(done) {
+
+    it('should be able to automatically create an API descriptor ' + // 
+    'based on annotated class methods', function(done) {
         var instance = new TestType();
         var descriptor = Mosaic.ApiDescriptor.getDescriptor(instance);
         var options = {
             descriptor : descriptor,
             instance : instance,
-            pathPrefix : '/toto',
-            port : 1234
+            pathPrefix : '/toto'
         };
-        Utils.startServer(options).then(function(srv) {
-            server = srv;
-            client = Utils.newClient(options);
-            done();
-        }, done).done();
-    });
-    afterEach(function() {
-        if (server) {
-            var s = server;
-            server = null;
-            s.close();
-        }
-    });
-    it('should be able to automatically create an API descriptor ' + // 
-    'based on annotated class methods', function(done) {
-        Mosaic.P.then(function() {
-            client.sayHello({
-                name : 'John Smith'
-            }).then(function(result) {
-                expect(result.msg).to.eql('Hello, John Smith!');
-            });
-        }).then(done, done).done();
+        withServer(Utils.newApiDescriptorBuilder(options),
+                function test(server) {
+                    var client = Utils.newClient(options);
+                    return client.sayHello({
+                        name : 'John Smith'
+                    }).then(function(result) {
+                        expect(result.msg).to.eql('Hello, John Smith!');
+                    });
+                }).then(done, done).done();
     });
 
 });
+
+function withServer(init, test) {
+    var server;
+    return Mosaic.P.fin(Utils.newServer(init).then(function(s) {
+        server = s;
+        return test(server);
+    }), function() {
+        if (!server)
+            return;
+        server.close();
+        server = undefined;
+    });
+}
 
 function testAuth(api, options) {
     return Mosaic.P
