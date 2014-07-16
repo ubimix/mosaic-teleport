@@ -3,53 +3,6 @@
     "use strict";
 
     var Mosaic = module.exports = _dereq_('mosaic-commons');
-    _dereq_('./Mosaic.ApiDescriptor');
-    var _ = _dereq_('underscore');
-    var Superagent = _dereq_('superagent');
-
-    Mosaic.ApiDescriptor.SuperagentClientStub = // 
-    Mosaic.ApiDescriptor.HttpClientStub.extend({
-        initialize : function(options) {
-            var init = this.class.parent.prototype.initialize;
-            init.call(this, options);
-            this.client = Superagent.agent();
-        },
-        _http : function(req, res, callback) {
-            var method = req.method;
-            if (method == 'delete') {
-                method = 'del';
-            }
-            var agent = this.client[method](req.url);
-            _.each(req.headers, function(value, key) {
-                agent = agent.set(key, value);
-            });
-            agent = agent.send(req.body);
-            agent.end(function(err, r) {
-                try {
-                    if (r) {
-                        res.status = r.status;
-                        _.extend(res.headers, r.headers || {});
-                        res.body = r.body;
-                    } else if (err && err.status) {
-                        res.status = err.status;
-                    } else {
-                        res.status = 500;
-                    }
-                    callback(err);
-                } catch (e) {
-                    callback(e);
-                }
-            });
-        }
-    });
-
-})(module, _dereq_);
-
-},{"./Mosaic.ApiDescriptor":2}],2:[function(_dereq_,module,exports){
-(function(module, _dereq_) {
-    "use strict";
-
-    var Mosaic = module.exports = _dereq_('mosaic-commons');
     _dereq_('./Mosaic.PathMapper');
     var _ = _dereq_('underscore');
 
@@ -441,15 +394,16 @@
                 'API endpoint URL is not defined').code(501);
             }
             var that = this;
-            that.descriptor = options.descriptor;
             that.setOptions(options);
+            that.descriptor = that.options.descriptor;
+            that.client = that.options.client || that._newHttpClient();
             that.handle = that._wrapHandleMethod(that.handle);
             var config = that.descriptor._config;
             _.each(config, function(obj, path) {
                 _.each(obj, function(methodName, http) {
                     that[methodName] = function(params) {
-                        var req = that._newHttpRequest(path, http, params);
-                        var res = that._newHttpResponse(req);
+                        var req = that.client.newRequest(path, http, params);
+                        var res = that.client.newResponse(req);
                         return that.handle(req, res);
                     };
                 });
@@ -457,35 +411,12 @@
         },
 
         /**
-         * Create a request object containing URL to invoke, method to invoke,
-         * query parameters, HTTP headers and the main body.
+         * Creates and returns a new HTTP client (an instance of the
+         * Mosaic.HttpClient
          */
-        _newHttpRequest : function(path, method, params) {
-            params = params || {};
-            var expandedPath = Mosaic.PathMapper.formatPath(path, params);
-            var url = this._toUrl(expandedPath);
-            return {
-                id : _.uniqueId('req-'),
-                url : url,
-                method : method,
-                query : {},
-                headers : {},
-                body : params || {}
-            };
-        },
-
-        /**
-         * Creates and returns a new response object corresponding to the
-         * specified request.
-         */
-        _newHttpResponse : function(req) {
-            return {
-                id : req.id,
-                status : 200,
-                headers : {},
-                body : null,
-                error : null
-            };
+        _newHttpClient : function() {
+            _dereq_('./Mosaic.HttpClient.Superagent');
+            return new Mosaic.HttpClient.Superagent(this.options);
         },
 
         /**
@@ -493,63 +424,14 @@
          * promise with the response.
          */
         handle : function(req, res) {
-            var that = this;
-            var defer = Mosaic.P.defer();
-            try {
-                that._http(req, res, function(error) {
-                    try {
-                        if (!error) {
-                            var category = parseInt(res.status) / 100;
-                            category = parseInt(category) * 100;
-                            if (category != 200) {
-                                if (res.body && res.body.trace) {
-                                    error = Mosaic.Errors.fromJSON(res.body)
-                                            .code(res.status);
-                                } else {
-                                    error = Mosaic.Errors.newError(
-                                            '' + res.status).code(res.status);
-                                }
-                            }
-                        }
-                        if (error) {
-                            throw error;
-                        }
-                        defer.resolve(res.body);
-                    } catch (err) {
-                        defer.reject(err);
-                    }
-                });
-            } catch (error) {
-                defer.reject(error);
-            }
-            return defer.promise;
+            return this.client.handle(req, res);
         },
 
-        /**
-         * Transforms the specified path to the full URL. This method uses the
-         * "baseUrl" parameter defined in the constructor to build the full
-         * endpoint URL.
-         */
-        _toUrl : function(path) {
-            var options = this.options || {};
-            var baseUrl = options.baseUrl || '';
-            return baseUrl + path;
-        },
-
-        /**
-         * This method should implement a real HTTP call and return results
-         * using the specified callback method. First parameter of this callback
-         * is an error and the second parameter is the result of the call. This
-         * method should be overloaded in subclasses.
-         */
-        _http : function(req, res, callback) {
-            var err = Mosaic.Errors.newError('Not implemented');
-            callback(err);
-        },
     });
+ 
 })(module, _dereq_);
 
-},{"./Mosaic.PathMapper":4}],3:[function(_dereq_,module,exports){
+},{"./Mosaic.HttpClient.Superagent":3,"./Mosaic.PathMapper":5}],2:[function(_dereq_,module,exports){
 (function(module, _dereq_) {
     "use strict";
 
@@ -717,7 +599,172 @@
 
 })(module, _dereq_);
 
-},{"./Mosaic.ApiDescriptor":2,"./Mosaic.PathMapper":4}],4:[function(_dereq_,module,exports){
+},{"./Mosaic.ApiDescriptor":1,"./Mosaic.PathMapper":5}],3:[function(_dereq_,module,exports){
+(function(module, _dereq_) {
+    "use strict";
+
+    var Mosaic = module.exports = _dereq_('mosaic-commons');
+    _dereq_('./Mosaic.HttpClient');
+    var _ = _dereq_('underscore');
+    var Superagent = _dereq_('superagent');
+
+    /**
+     * An implementation of the Mosaic.HttpClient interface based on the
+     * Superagent HTTP client library.
+     */
+    Mosaic.HttpClient.Superagent = Mosaic.HttpClient.extend({
+
+        initialize : function(options) {
+            var init = Mosaic.HttpClient.prototype.initialize;
+            init.call(this, options);
+            this.client = Superagent.agent();
+        },
+
+        http : function(req, res, callback) {
+            var method = req.method || 'get';
+            if (method == 'delete') {
+                method = 'del';
+            }
+            method = method.toLowerCase();
+            var agent = this.client[method](req.url);
+            _.each(req.headers, function(value, key) {
+                agent = agent.set(key, value);
+            });
+            agent = agent.send(req.body);
+            agent.end(function(err, r) {
+                try {
+                    if (r) {
+                        res.status = r.status;
+                        _.extend(res.headers, r.headers || {});
+                        res.body = r.body;
+                    } else if (err && err.status) {
+                        res.status = err.status;
+                    } else {
+                        res.status = 500;
+                    }
+                    callback(err);
+                } catch (e) {
+                    callback(e);
+                }
+            });
+        }
+    });
+
+})(module, _dereq_);
+
+},{"./Mosaic.HttpClient":4}],4:[function(_dereq_,module,exports){
+(function(module, _dereq_) {
+    "use strict";
+
+    var Mosaic = module.exports = _dereq_('mosaic-commons');
+    _dereq_('./Mosaic.PathMapper');
+    var _ = _dereq_('underscore');
+
+    /** A generic HTTP client wrapper. */
+    Mosaic.HttpClient = Mosaic.Class.extend({
+
+        /** Initializes this class */
+        initialize : function(options) {
+            this.setOptions(options);
+        },
+
+        /**
+         * Handles the specified request to the remote API method and returns a
+         * promise with the response.
+         */
+        handle : function(req, res) {
+            var that = this;
+            var defer = Mosaic.P.defer();
+            try {
+                that.http(req, res, function(error) {
+                    try {
+                        if (!error) {
+                            var category = parseInt(res.status) / 100;
+                            category = parseInt(category) * 100;
+                            if (category != 200) {
+                                if (res.body && res.body.trace) {
+                                    error = Mosaic.Errors.fromJSON(res.body)
+                                            .code(res.status);
+                                } else {
+                                    error = Mosaic.Errors.newError(
+                                            '' + res.status).code(res.status);
+                                }
+                            }
+                        }
+                        if (error) {
+                            throw error;
+                        }
+                        defer.resolve(res.body);
+                    } catch (err) {
+                        defer.reject(err);
+                    }
+                });
+            } catch (error) {
+                defer.reject(error);
+            }
+            return defer.promise;
+        },
+
+        /**
+         * Create a request object containing URL to invoke, method to invoke,
+         * query parameters, HTTP headers and the main body.
+         */
+        newRequest : function(path, method, params, body) {
+            method = (method || 'get').toUpperCase();
+            params = params || {};
+            body = body || params || {};
+            var expandedPath = Mosaic.PathMapper.formatPath(path, params);
+            var url = this._toUrl(expandedPath);
+            return {
+                id : _.uniqueId('req-'),
+                url : url,
+                method : method,
+                query : {},
+                headers : {},
+                body : body
+            };
+        },
+
+        /**
+         * Creates and returns a new response object corresponding to the
+         * specified request.
+         */
+        newResponse : function(req) {
+            return {
+                id : req.id,
+                status : 200,
+                headers : {},
+                body : null,
+                error : null
+            };
+        },
+
+        /**
+         * Transforms the specified path to the full URL. This method uses the
+         * "baseUrl" parameter defined in the constructor to build the full
+         * endpoint URL.
+         */
+        _toUrl : function(path) {
+            var options = this.options || {};
+            var baseUrl = options.baseUrl || '';
+            return baseUrl + path;
+        },
+
+        /**
+         * This method should implement a real HTTP call and return results
+         * using the specified callback method. First parameter of this callback
+         * is an error and the second parameter is the result of the call. This
+         * method should be overloaded in subclasses.
+         */
+        http : function(req, res, callback) {
+            var err = Mosaic.Errors.newError('Not implemented');
+            callback(err);
+        },
+    });
+
+})(module, _dereq_);
+
+},{"./Mosaic.PathMapper":5}],5:[function(_dereq_,module,exports){
 (function(module, _dereq_) {
     "use strict";
 
@@ -886,13 +933,14 @@
 
 })(module, _dereq_);
 
-},{}],5:[function(_dereq_,module,exports){
+},{}],6:[function(_dereq_,module,exports){
 module.exports = _dereq_('mosaic-commons');
 _dereq_('./Mosaic.ApiDescriptor');
-_dereq_('./Mosaic.PathMapper');
-_dereq_('./Mosaic.ApiDescriptor.SuperagentClientStub');
 _dereq_('./Mosaic.ApiDispatcher');
+_dereq_('./Mosaic.PathMapper');
+_dereq_('./Mosaic.HttpClient');
+_dereq_('./Mosaic.HttpClient.Superagent');
 
-},{"./Mosaic.ApiDescriptor":2,"./Mosaic.ApiDescriptor.SuperagentClientStub":1,"./Mosaic.ApiDispatcher":3,"./Mosaic.PathMapper":4}]},{},[5])
-(5)
+},{"./Mosaic.ApiDescriptor":1,"./Mosaic.ApiDispatcher":2,"./Mosaic.HttpClient":4,"./Mosaic.HttpClient.Superagent":3,"./Mosaic.PathMapper":5}]},{},[6])
+(6)
 });

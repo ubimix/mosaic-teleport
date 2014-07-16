@@ -393,15 +393,16 @@
                 'API endpoint URL is not defined').code(501);
             }
             var that = this;
-            that.descriptor = options.descriptor;
             that.setOptions(options);
+            that.descriptor = that.options.descriptor;
+            that.client = that.options.client || that._newHttpClient();
             that.handle = that._wrapHandleMethod(that.handle);
             var config = that.descriptor._config;
             _.each(config, function(obj, path) {
                 _.each(obj, function(methodName, http) {
                     that[methodName] = function(params) {
-                        var req = that._newHttpRequest(path, http, params);
-                        var res = that._newHttpResponse(req);
+                        var req = that.client.newRequest(path, http, params);
+                        var res = that.client.newResponse(req);
                         return that.handle(req, res);
                     };
                 });
@@ -409,35 +410,12 @@
         },
 
         /**
-         * Create a request object containing URL to invoke, method to invoke,
-         * query parameters, HTTP headers and the main body.
+         * Creates and returns a new HTTP client (an instance of the
+         * Mosaic.HttpClient
          */
-        _newHttpRequest : function(path, method, params) {
-            params = params || {};
-            var expandedPath = Mosaic.PathMapper.formatPath(path, params);
-            var url = this._toUrl(expandedPath);
-            return {
-                id : _.uniqueId('req-'),
-                url : url,
-                method : method,
-                query : {},
-                headers : {},
-                body : params || {}
-            };
-        },
-
-        /**
-         * Creates and returns a new response object corresponding to the
-         * specified request.
-         */
-        _newHttpResponse : function(req) {
-            return {
-                id : req.id,
-                status : 200,
-                headers : {},
-                body : null,
-                error : null
-            };
+        _newHttpClient : function() {
+            require('./Mosaic.HttpClient.Superagent');
+            return new Mosaic.HttpClient.Superagent(this.options);
         },
 
         /**
@@ -445,58 +423,9 @@
          * promise with the response.
          */
         handle : function(req, res) {
-            var that = this;
-            var defer = Mosaic.P.defer();
-            try {
-                that._http(req, res, function(error) {
-                    try {
-                        if (!error) {
-                            var category = parseInt(res.status) / 100;
-                            category = parseInt(category) * 100;
-                            if (category != 200) {
-                                if (res.body && res.body.trace) {
-                                    error = Mosaic.Errors.fromJSON(res.body)
-                                            .code(res.status);
-                                } else {
-                                    error = Mosaic.Errors.newError(
-                                            '' + res.status).code(res.status);
-                                }
-                            }
-                        }
-                        if (error) {
-                            throw error;
-                        }
-                        defer.resolve(res.body);
-                    } catch (err) {
-                        defer.reject(err);
-                    }
-                });
-            } catch (error) {
-                defer.reject(error);
-            }
-            return defer.promise;
+            return this.client.handle(req, res);
         },
 
-        /**
-         * Transforms the specified path to the full URL. This method uses the
-         * "baseUrl" parameter defined in the constructor to build the full
-         * endpoint URL.
-         */
-        _toUrl : function(path) {
-            var options = this.options || {};
-            var baseUrl = options.baseUrl || '';
-            return baseUrl + path;
-        },
-
-        /**
-         * This method should implement a real HTTP call and return results
-         * using the specified callback method. First parameter of this callback
-         * is an error and the second parameter is the result of the call. This
-         * method should be overloaded in subclasses.
-         */
-        _http : function(req, res, callback) {
-            var err = Mosaic.Errors.newError('Not implemented');
-            callback(err);
-        },
     });
+ 
 })(module, require);

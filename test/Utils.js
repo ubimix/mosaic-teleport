@@ -22,7 +22,7 @@ function getBaseUrl(options) {
 function newClient(options) {
     options = options || {};
     options.baseUrl = getBaseUrl(options);
-    var client = new Mosaic.ApiDescriptor.SuperagentClientStub(options);
+    var client = new Mosaic.ApiDescriptor.HttpClientStub(options);
     return client;
 }
 

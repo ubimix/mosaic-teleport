@@ -3,7 +3,6 @@ var _ = require('underscore');
 var Mosaic = require('mosaic-commons');
 require('..');
 var Utils = require('./Utils');
-var Superagent = require('superagent');
 
 var bindHttp = Mosaic.ApiDescriptor.bind;
 
@@ -70,45 +69,6 @@ describe('ApiDispatcher', function() {
         });
     });
 
-    function loadJson(url, headers, body) {
-        var deferred = Mosaic.P.defer();
-        try {
-            body = body || {};
-            headers = headers || {};
-            _.defaults(headers, {
-                'Accept' : 'application/json'
-            });
-            Superagent.get(url).set(headers).send(body)//
-            .end(
-                    function(res) {
-                        try {
-                            var err;
-                            var category = parseInt(res.status) / 100;
-                            category = parseInt(category) * 100;
-                            if (category != 200) {
-                                if (res.body && res.body.trace) {
-                                    err = Mosaic.Errors.fromJSON(res.body)
-                                            .code(res.status);
-                                    err.stack = res.body.trace.join('\n');
-                                } else {
-                                    err = Mosaic.Errors.newError(
-                                            '' + res.status).code(res.status);
-                                }
-                            }
-                            if (err) {
-                                throw err;
-                            }
-                            deferred.resolve(res.body);
-                        } catch (e) {
-                            deferred.reject(e);
-                        }
-                    });
-        } catch (ex) {
-            deferred.reject(ex);
-        }
-        return deferred.promise;
-    }
-
     describe('should manage remote calls', function() {
         var options = {
             port : 1234,
@@ -128,7 +88,12 @@ describe('ApiDispatcher', function() {
                 return options;
             }, function(server) {
                 var url = Utils.getBaseUrl(options) + '/first.info';
-                return loadJson(url).then(function(description) {
+                var httpClient = new Mosaic.HttpClient.Superagent({
+                    baseUrl : Utils.getBaseUrl(options)
+                });
+                var req = httpClient.newRequest('/first.info');
+                var res = httpClient.newResponse(req);
+                return httpClient.handle(req, res).then(function(description) {
                     // FIXME: externalize this code
                     var baseUrl = Utils.getBaseUrl({
                         path : description.endpoint
@@ -136,8 +101,7 @@ describe('ApiDispatcher', function() {
                     var apiInfo = description.api;
                     var descriptor = new Mosaic.ApiDescriptor();
                     descriptor.importJson(apiInfo);
-                    var client = // 
-                    new Mosaic.ApiDescriptor.SuperagentClientStub({
+                    var client = new Mosaic.ApiDescriptor.HttpClientStub({
                         baseUrl : baseUrl,
                         descriptor : descriptor
                     });

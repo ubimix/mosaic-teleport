@@ -2,22 +2,28 @@
     "use strict";
 
     var Mosaic = module.exports = require('mosaic-commons');
-    require('./Mosaic.ApiDescriptor');
+    require('./Mosaic.HttpClient');
     var _ = require('underscore');
     var Superagent = require('superagent');
 
-    Mosaic.ApiDescriptor.SuperagentClientStub = // 
-    Mosaic.ApiDescriptor.HttpClientStub.extend({
+    /**
+     * An implementation of the Mosaic.HttpClient interface based on the
+     * Superagent HTTP client library.
+     */
+    Mosaic.HttpClient.Superagent = Mosaic.HttpClient.extend({
+
         initialize : function(options) {
-            var init = this.class.parent.prototype.initialize;
+            var init = Mosaic.HttpClient.prototype.initialize;
             init.call(this, options);
             this.client = Superagent.agent();
         },
-        _http : function(req, res, callback) {
-            var method = req.method;
+
+        http : function(req, res, callback) {
+            var method = req.method || 'get';
             if (method == 'delete') {
                 method = 'del';
             }
+            method = method.toLowerCase();
             var agent = this.client[method](req.url);
             _.each(req.headers, function(value, key) {
                 agent = agent.set(key, value);
