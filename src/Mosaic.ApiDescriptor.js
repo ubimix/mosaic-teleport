@@ -262,8 +262,8 @@
             var http = req.method.toLowerCase();
             var conf = that.descriptor.get(path);
             if (!conf) {
-                throw Mosaic.Errors.newError(404, //
-                'Path not found "' + path + '"');
+                throw Mosaic.Errors.newError('Path not found "' + path + '"')
+                        .code(404);
             }
             var methodName = conf.obj[http];
             if (!methodName) {
@@ -385,12 +385,12 @@
          */
         initialize : function(options) {
             if (!options.descriptor) {
-                throw Mosaic.Errors.newError(501,
-                        'API descriptor is not defined');
+                throw Mosaic.Errors.newError('API descriptor is not defined')
+                        .code(501);
             }
             if (!options.baseUrl) {
-                throw Mosaic.Errors.newError(501, '"baseUrl" is empty; ' + // 
-                'API endpoint URL is not defined');
+                throw Mosaic.Errors.newError('"baseUrl" is empty; ' + // 
+                'API endpoint URL is not defined').code(501);
             }
             var that = this;
             that.descriptor = options.descriptor;

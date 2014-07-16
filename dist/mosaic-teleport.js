@@ -385,7 +385,7 @@
         _getPath : function(req) {
             var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
             var options = this.options || {};
-            var prefix = options.pathPrefix || '';
+            var prefix = options.path || '';
             return path.substring(prefix.length);
         }
     });
@@ -433,12 +433,12 @@
          */
         initialize : function(options) {
             if (!options.descriptor) {
-                throw Mosaic.Errors.newError(501,
-                        'API descriptor is not defined');
+                throw Mosaic.Errors.newError('API descriptor is not defined')
+                        .code(501);
             }
             if (!options.baseUrl) {
-                throw Mosaic.Errors.newError(501, '"baseUrl" is empty; ' + // 
-                'API endpoint URL is not defined');
+                throw Mosaic.Errors.newError('"baseUrl" is empty; ' + // 
+                'API endpoint URL is not defined').code(501);
             }
             var that = this;
             that.descriptor = options.descriptor;
@@ -569,13 +569,12 @@
         /**
          * Initializes this object.
          * 
-         * @param options.pathPrefix
+         * @param options.path
          *            this path prefix is added to all endpoints
          */
         initialize : function(options) {
             this.setOptions(options);
-            this.options.pathPrefix = this
-                    ._normalizePath(this.options.pathPrefix);
+            this.options.path = this._normalizePath(this.options.path);
             this._mapping = new Mosaic.PathMapper();
         },
 
@@ -608,7 +607,7 @@
          */
         register : function(app) {
             var that = this;
-            var prefix = (that.options.pathPrefix || '') + '/*';
+            var prefix = (that.options.path || '') + '/*';
             app.all(prefix, function(req, res) {
                 that.handle(req, res).done();
             });
@@ -691,7 +690,7 @@
         /** Returns a normalized and prefixed path. */
         _getPath : function(path) {
             var that = this;
-            var prefix = that.options.pathPrefix;
+            var prefix = that.options.path;
             path = prefix + that._normalizePath(path);
             return path;
         },

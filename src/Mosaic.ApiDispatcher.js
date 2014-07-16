@@ -17,13 +17,12 @@
         /**
          * Initializes this object.
          * 
-         * @param options.pathPrefix
+         * @param options.path
          *            this path prefix is added to all endpoints
          */
         initialize : function(options) {
             this.setOptions(options);
-            this.options.pathPrefix = this
-                    ._normalizePath(this.options.pathPrefix);
+            this.options.path = this._normalizePath(this.options.path);
             this._mapping = new Mosaic.PathMapper();
         },
 
@@ -56,7 +55,7 @@
          */
         register : function(app) {
             var that = this;
-            var prefix = (that.options.pathPrefix || '') + '/*';
+            var prefix = (that.options.path || '') + '/*';
             app.all(prefix, function(req, res) {
                 that.handle(req, res).done();
             });
@@ -139,7 +138,7 @@
         /** Returns a normalized and prefixed path. */
         _getPath : function(path) {
             var that = this;
-            var prefix = that.options.pathPrefix;
+            var prefix = that.options.path;
             path = prefix + that._normalizePath(path);
             return path;
         },

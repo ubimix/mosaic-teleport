@@ -28,7 +28,7 @@ describe('ApiDispatcher', function() {
 
     it('should be able to provide API description for each path', function() {
         var dispatcher = new Mosaic.ApiDispatcher({
-            pathPrefix : '/toto'
+            path : '/toto'
         });
         dispatcher.addEndpoint({
             path : '/first',
@@ -96,7 +96,7 @@ describe('ApiDispatcher', function() {
                                 }
                             }
                             if (err) {
-                                throw ex;
+                                throw err;
                             }
                             deferred.resolve(res.body);
                         } catch (e) {
@@ -112,7 +112,7 @@ describe('ApiDispatcher', function() {
     describe('should manage remote calls', function() {
         var options = {
             port : 1234,
-            pathPrefix : '/toto'
+            path : '/toto'
         };
         it('should be able handle remote API calls', function(done) {
             Utils.withServer(function(app) {
@@ -121,7 +121,7 @@ describe('ApiDispatcher', function() {
                     path : '/first',
                     instance : new FirstType()
                 });
-                var prefix = (options.pathPrefix || '') + '/*';
+                var prefix = (options.path || '') + '/*';
                 app.all(prefix, function(req, res) {
                     dispatcher.handle(req, res).done();
                 });
@@ -131,7 +131,7 @@ describe('ApiDispatcher', function() {
                 return loadJson(url).then(function(description) {
                     // FIXME: externalize this code
                     var baseUrl = Utils.getBaseUrl({
-                        pathPrefix : description.endpoint
+                        path : description.endpoint
                     });
                     var apiInfo = description.api;
                     var descriptor = new Mosaic.ApiDescriptor();

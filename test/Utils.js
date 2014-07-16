@@ -16,7 +16,7 @@ function getPort(options) {
 }
 function getBaseUrl(options) {
     options = options || {};
-    return 'http://localhost:' + getPort(options) + options.pathPrefix;
+    return 'http://localhost:' + getPort(options) + options.path;
 }
 
 function newClient(options) {
@@ -67,7 +67,7 @@ function newApiDescriptorBuilder(options) {
     return function(app) {
         // Create and register an API stub handling requests
         var handler = new Mosaic.ApiDescriptor.HttpServerStub(options);
-        var prefix = (options.pathPrefix || '') + '/*';
+        var prefix = (options.path || '') + '/*';
         app.all(prefix, function(req, res) {
             handler.handle(req, res).done();
         });

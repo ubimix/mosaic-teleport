@@ -41,7 +41,7 @@ describe('Remote API', function() {
     // transferred back and forth in the 'x-session-id' HTTP header.
     var options = {
         descriptor : new ApiConfig(),
-        pathPrefix : '/toto'
+        path : '/toto'
     };
     var serverOptions = _.extend({}, options, {
         instance : new Api(),
@@ -118,7 +118,7 @@ describe('Mosaic.ApiDescriptor - automatic API instantiation', function() {
         var options = {
             descriptor : descriptor,
             instance : instance,
-            pathPrefix : '/toto'
+            path : '/toto'
         };
         Utils.withServer(Utils.newApiDescriptorBuilder(options),
                 function test(server) {
