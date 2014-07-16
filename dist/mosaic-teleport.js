@@ -68,6 +68,9 @@
                     });
                 });
             });
+            result.sort(function(a, b) {
+                return a.path > b.path ? 1 : a.path < b.path ? -1 : 0;
+            });
             return result;
         },
 
@@ -197,6 +200,9 @@
      */
     Mosaic.ApiDescriptor.HttpServerStub = Handler.extend({
 
+        /** This suffix is used to define URLs returning API descriptions. */
+        INFO_SUFFIX : '.info',
+
         /**
          * Initializes this object and checks that the specified options contain
          * an API descriptor.
@@ -259,20 +265,47 @@
          */
         _doHandle : function(req, res) {
             var that = this;
-            var path = that._getPath(req);
-            var http = req.method.toLowerCase();
-            var conf = that.descriptor.get(path);
-            if (!conf) {
-                throw Mosaic.Errors.newError('Path not found "' + path + '"')
-                        .code(404);
+            var path = that._getLocalizedPath(req);
+            if (that._isEndpointInfoPath(path)) {
+                var json = that.getEndpointJson();
+                return json;
+            } else {
+                var http = req.method.toLowerCase();
+                var conf = that.descriptor.get(path);
+                if (!conf) {
+                    throw Mosaic.Errors.newError(
+                            'Path not found "' + path + '"').code(404);
+                }
+                var methodName = conf.obj[http];
+                if (!methodName) {
+                    throw Mosaic.Errors//
+                    .newError('HTTP method "' + http.toUpperCase() + //
+                    '" is not supported. Path: "' + path + '".').code(404);
+                }
+                return that._callMethod(req, res, methodName, conf.params);
             }
-            var methodName = conf.obj[http];
-            if (!methodName) {
-                throw Mosaic.Errors//
-                .newError('HTTP method "' + http.toUpperCase() + //
-                '" is not supported. Path: "' + path + '".').code(404);
-            }
-            return that._callMethod(req, res, methodName, conf.params);
+        },
+
+        /** Returns a JSON descriptor for the specified handler */
+        getEndpointJson : function() {
+            var that = this;
+            var descriptor = that.getDescriptor();
+            var api = descriptor.exportJson();
+            var path = that.options.path || '';
+            return {
+                endpoint : path,
+                api : api
+            };
+        },
+
+        /**
+         * Returns true if the specified path corresponds to an API description
+         * endpoint. IE this endpoint should send a JSON description of all API
+         * methods available with this path prefix.
+         */
+        _isEndpointInfoPath : function(path) {
+            return (path.lastIndexOf(this.INFO_SUFFIX) === // 
+            path.length - this.INFO_SUFFIX.length);
         },
 
         /**
@@ -335,7 +368,7 @@
          * used to find an API method to invoke. Used internally by the
          * "_doHandle" method.
          */
-        _getPath : function(req) {
+        _getLocalizedPath : function(req) {
             var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
             var options = this.options || {};
             var prefix = options.path || '';
@@ -380,18 +413,14 @@
          *            a mandatory API descriptor defining all methods exposed
          *            via REST endpoints; this descriptor defines mapping of
          *            path parameters and used HTTP methods to call methods
-         * @param options.baseUrl
-         *            a base URL of the HTTP endpoint implementing the API
-         *            defined by the descriptor.
+         * @param options.client
+         *            (or options.baseUrl) the HTTP client or a baseUrl used to
+         *            create a new HTTP client.
          */
         initialize : function(options) {
             if (!options.descriptor) {
                 throw Mosaic.Errors.newError('API descriptor is not defined')
                         .code(501);
-            }
-            if (!options.baseUrl) {
-                throw Mosaic.Errors.newError('"baseUrl" is empty; ' + // 
-                'API endpoint URL is not defined').code(501);
             }
             var that = this;
             that.setOptions(options);
@@ -402,12 +431,21 @@
             _.each(config, function(obj, path) {
                 _.each(obj, function(methodName, http) {
                     that[methodName] = function(params) {
-                        var req = that.client.newRequest(path, http, params);
+                        var p = that._getFullPath(path, params);
+                        var req = that.client.newRequest(p, http, params);
                         var res = that.client.newResponse(req);
                         return that.handle(req, res);
                     };
                 });
             });
+        },
+
+        /**
+         * Handles the specified request to the remote API method and returns a
+         * promise with the response.
+         */
+        handle : function(req, res) {
+            return this.client.handle(req, res);
         },
 
         /**
@@ -419,16 +457,33 @@
             return new Mosaic.HttpClient.Superagent(this.options);
         },
 
-        /**
-         * Handles the specified request to the remote API method and returns a
-         * promise with the response.
-         */
-        handle : function(req, res) {
-            return this.client.handle(req, res);
-        },
-
+        /** Returns a full path for the specified method path. */
+        _getFullPath : function(methodPath, params) {
+            return Mosaic.PathMapper.formatPath(methodPath, params);
+        }
     });
- 
+
+    /**
+     * Loads API description and returns a client stub corresponding to the
+     * specified endpoint URL.
+     */
+    Mosaic.ApiDescriptor.HttpClientStub.load = function(endpointUrl) {
+        var httpClient = new Mosaic.HttpClient.Superagent({
+            baseUrl : endpointUrl
+        });
+        var req = httpClient.newRequest('.info');
+        var res = httpClient.newResponse(req);
+        return httpClient.handle(req, res).then(function(description) {
+            var apiInfo = description.api;
+            var descriptor = new Mosaic.ApiDescriptor();
+            descriptor.importJson(apiInfo);
+            return new Mosaic.ApiDescriptor.HttpClientStub({
+                path : description.endpoint,
+                descriptor : descriptor,
+                client : httpClient,
+            });
+        });
+    };
 })(module, _dereq_);
 
 },{"./Mosaic.HttpClient.Superagent":3,"./Mosaic.PathMapper":5}],2:[function(_dereq_,module,exports){
@@ -477,7 +532,7 @@
             if (!options.path) {
                 throw Mosaic.Errors.newError('Path is not defined');
             }
-            var path = this._getPath(options.path);
+            var path = this._getEndpointPath(options.path);
             options.path = path;
             var handler = new Mosaic.ApiDescriptor.HttpServerStub(options);
             var mask = path + '*prefix';
@@ -503,18 +558,13 @@
             var that = this;
             return Mosaic.P.then(function() {
                 var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
-                var obj = that._find(path);
-                if (!obj) {
+                var item = that._find(path);
+                if (!item) {
                     throw Mosaic.Errors.newError(404, //
                     'API handler not found. Path: "' + path + '".');
                 } else {
-                    var handler = obj.obj;
-                    if (that._isEndpointInfoPath(path)) {
-                        var json = that._getDescriptorJson(handler);
-                        res.send(200, json);
-                    } else {
-                        return handler.handle(req, res);
-                    }
+                    var handler = item.obj;
+                    return handler.handle(req, res);
                 }
             }).then(null, function(err) {
                 var errObj = Mosaic.Errors.toJSON(err);
@@ -532,27 +582,18 @@
             if (!obj)
                 return null;
             var handler = obj.obj;
-            return that._getDescriptorJson(handler);
+            var result = handler.getEndpointJson();
+            // var endpointPath = that._getEndpointPath('');
+            // result.endpoint = result.endpoint.substring(endpointPath.length);
+            return result;
         },
 
-        /**
-         * Returns true if the specified path corresponds to an API description
-         * endpoint. IE this endpoint should send a JSON description of all API
-         * methods available with this path prefix.
-         */
-        _isEndpointInfoPath : function(path) {
-            var suffix = '.info';
-            return (path.lastIndexOf(suffix) === path.length - suffix.length);
-        },
-
-        /** Returns a JSON descriptor for the specified handler */
-        _getDescriptorJson : function(handler) {
+        /** Returns a normalized and prefixed path. */
+        _getEndpointPath : function(path) {
             var that = this;
-            var descriptor = handler.getDescriptor();
-            return {
-                endpoint : handler.options.path,
-                api : descriptor.exportJson()
-            };
+            var prefix = that.options.path;
+            path = prefix + that._normalizePath(path);
+            return path;
         },
 
         /**
@@ -567,14 +608,6 @@
             path = this._normalizePath(path);
             var obj = this._mapping.find(path);
             return obj;
-        },
-
-        /** Returns a normalized and prefixed path. */
-        _getPath : function(path) {
-            var that = this;
-            var prefix = that.options.path;
-            path = prefix + that._normalizePath(path);
-            return path;
         },
 
         /**
@@ -657,15 +690,23 @@
     "use strict";
 
     var Mosaic = module.exports = _dereq_('mosaic-commons');
-    _dereq_('./Mosaic.PathMapper');
     var _ = _dereq_('underscore');
 
     /** A generic HTTP client wrapper. */
     Mosaic.HttpClient = Mosaic.Class.extend({
 
-        /** Initializes this class */
+        /**
+         * Initializes this class.
+         * 
+         * @param options.baseUrl
+         *            a base URL of the HTTP client
+         */
         initialize : function(options) {
             this.setOptions(options);
+            if (!this.options.baseUrl) {
+                throw Mosaic.Errors.newError('The "baseUrl" is not defined.')
+                        .code(501);
+            }
         },
 
         /**
@@ -685,6 +726,10 @@
                                 if (res.body && res.body.trace) {
                                     error = Mosaic.Errors.fromJSON(res.body)
                                             .code(res.status);
+                                    var trace = _.isArray(res.body.trace) ? // 
+                                    res.body.trace.join('\n') : //
+                                    '' + res.body.trace;
+                                    error.stack = trace + '\n\n' + error.stack;
                                 } else {
                                     error = Mosaic.Errors.newError(
                                             '' + res.status).code(res.status);
@@ -713,8 +758,7 @@
             method = (method || 'get').toUpperCase();
             params = params || {};
             body = body || params || {};
-            var expandedPath = Mosaic.PathMapper.formatPath(path, params);
-            var url = this._toUrl(expandedPath);
+            var url = this._toUrl(path);
             return {
                 id : _.uniqueId('req-'),
                 url : url,
@@ -764,7 +808,7 @@
 
 })(module, _dereq_);
 
-},{"./Mosaic.PathMapper":5}],5:[function(_dereq_,module,exports){
+},{}],5:[function(_dereq_,module,exports){
 (function(module, _dereq_) {
     "use strict";
 

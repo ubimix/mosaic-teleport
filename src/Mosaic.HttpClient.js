@@ -2,15 +2,23 @@
     "use strict";
 
     var Mosaic = module.exports = require('mosaic-commons');
-    require('./Mosaic.PathMapper');
     var _ = require('underscore');
 
     /** A generic HTTP client wrapper. */
     Mosaic.HttpClient = Mosaic.Class.extend({
 
-        /** Initializes this class */
+        /**
+         * Initializes this class.
+         * 
+         * @param options.baseUrl
+         *            a base URL of the HTTP client
+         */
         initialize : function(options) {
             this.setOptions(options);
+            if (!this.options.baseUrl) {
+                throw Mosaic.Errors.newError('The "baseUrl" is not defined.')
+                        .code(501);
+            }
         },
 
         /**
@@ -30,6 +38,10 @@
                                 if (res.body && res.body.trace) {
                                     error = Mosaic.Errors.fromJSON(res.body)
                                             .code(res.status);
+                                    var trace = _.isArray(res.body.trace) ? // 
+                                    res.body.trace.join('\n') : //
+                                    '' + res.body.trace;
+                                    error.stack = trace + '\n\n' + error.stack;
                                 } else {
                                     error = Mosaic.Errors.newError(
                                             '' + res.status).code(res.status);
@@ -58,8 +70,7 @@
             method = (method || 'get').toUpperCase();
             params = params || {};
             body = body || params || {};
-            var expandedPath = Mosaic.PathMapper.formatPath(path, params);
-            var url = this._toUrl(expandedPath);
+            var url = this._toUrl(path);
             return {
                 id : _.uniqueId('req-'),
                 url : url,

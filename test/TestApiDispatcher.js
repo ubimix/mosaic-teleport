@@ -14,13 +14,19 @@ describe('ApiDispatcher', function() {
             return {
                 msg : 'Hello, ' + name + '!'
             };
+        }),
+        sayGoodbye : bindHttp('/bye', 'get', function(options) {
+            var name = options.name || 'Anonymous';
+            return {
+                msg : 'Bye-bye, ' + name + '!'
+            };
         })
     });
     var SecondType = Mosaic.Class.extend({
-        sayBye : bindHttp('/bye', 'get', function(options) {
+        sendMsg : bindHttp('/message', 'post', function(options) {
             var name = options.name || 'Anonymous';
             return {
-                msg : 'Goodbye, ' + name + '!'
+                msg : name + ', your message was sent!'
             };
         })
     });
@@ -42,16 +48,38 @@ describe('ApiDispatcher', function() {
         expect(descriptorJson).to.eql({
             endpoint : '/toto/first',
             api : [ {
+                path : '/bye',
+                http : 'get',
+                method : 'sayGoodbye',
+            }, {
                 path : '/hello',
                 http : 'get',
                 method : 'sayHello'
             } ]
         });
 
-        descriptorJson = dispatcher.getDescriptorJson('/toto/first/hello');
+        descriptorJson = dispatcher.getDescriptorJson('/toto/first/bye');
         expect(descriptorJson).to.eql({
             endpoint : '/toto/first',
             api : [ {
+                path : '/bye',
+                http : 'get',
+                method : 'sayGoodbye',
+            }, {
+                path : '/hello',
+                http : 'get',
+                method : 'sayHello'
+            } ]
+        });
+
+        descriptorJson = dispatcher.getDescriptorJson('/toto/first/bye');
+        expect(descriptorJson).to.eql({
+            endpoint : '/toto/first',
+            api : [ {
+                path : '/bye',
+                http : 'get',
+                method : 'sayGoodbye',
+            }, {
                 path : '/hello',
                 http : 'get',
                 method : 'sayHello'
@@ -62,9 +90,9 @@ describe('ApiDispatcher', function() {
         expect(descriptorJson).to.eql({
             endpoint : '/toto/second',
             api : [ {
-                path : '/bye',
-                http : 'get',
-                method : 'sayBye'
+                path : '/message',
+                http : 'post',
+                method : 'sendMsg'
             } ]
         });
     });
@@ -87,24 +115,9 @@ describe('ApiDispatcher', function() {
                 });
                 return options;
             }, function(server) {
-                var url = Utils.getBaseUrl(options) + '/first.info';
-                var httpClient = new Mosaic.HttpClient.Superagent({
-                    baseUrl : Utils.getBaseUrl(options)
-                });
-                var req = httpClient.newRequest('/first.info');
-                var res = httpClient.newResponse(req);
-                return httpClient.handle(req, res).then(function(description) {
-                    // FIXME: externalize this code
-                    var baseUrl = Utils.getBaseUrl({
-                        path : description.endpoint
-                    });
-                    var apiInfo = description.api;
-                    var descriptor = new Mosaic.ApiDescriptor();
-                    descriptor.importJson(apiInfo);
-                    var client = new Mosaic.ApiDescriptor.HttpClientStub({
-                        baseUrl : baseUrl,
-                        descriptor : descriptor
-                    });
+                var baseUrl = Utils.getBaseUrl(options) + '/first';
+                return Mosaic.ApiDescriptor.HttpClientStub.load(baseUrl)//
+                .then(function(client) {
                     return client.sayHello({
                         name : 'John Smith'
                     }).then(function(result) {

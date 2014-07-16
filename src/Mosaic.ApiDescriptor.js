@@ -67,6 +67,9 @@
                     });
                 });
             });
+            result.sort(function(a, b) {
+                return a.path > b.path ? 1 : a.path < b.path ? -1 : 0;
+            });
             return result;
         },
 
@@ -196,6 +199,9 @@
      */
     Mosaic.ApiDescriptor.HttpServerStub = Handler.extend({
 
+        /** This suffix is used to define URLs returning API descriptions. */
+        INFO_SUFFIX : '.info',
+
         /**
          * Initializes this object and checks that the specified options contain
          * an API descriptor.
@@ -258,20 +264,47 @@
          */
         _doHandle : function(req, res) {
             var that = this;
-            var path = that._getPath(req);
-            var http = req.method.toLowerCase();
-            var conf = that.descriptor.get(path);
-            if (!conf) {
-                throw Mosaic.Errors.newError('Path not found "' + path + '"')
-                        .code(404);
+            var path = that._getLocalizedPath(req);
+            if (that._isEndpointInfoPath(path)) {
+                var json = that.getEndpointJson();
+                return json;
+            } else {
+                var http = req.method.toLowerCase();
+                var conf = that.descriptor.get(path);
+                if (!conf) {
+                    throw Mosaic.Errors.newError(
+                            'Path not found "' + path + '"').code(404);
+                }
+                var methodName = conf.obj[http];
+                if (!methodName) {
+                    throw Mosaic.Errors//
+                    .newError('HTTP method "' + http.toUpperCase() + //
+                    '" is not supported. Path: "' + path + '".').code(404);
+                }
+                return that._callMethod(req, res, methodName, conf.params);
             }
-            var methodName = conf.obj[http];
-            if (!methodName) {
-                throw Mosaic.Errors//
-                .newError('HTTP method "' + http.toUpperCase() + //
-                '" is not supported. Path: "' + path + '".').code(404);
-            }
-            return that._callMethod(req, res, methodName, conf.params);
+        },
+
+        /** Returns a JSON descriptor for the specified handler */
+        getEndpointJson : function() {
+            var that = this;
+            var descriptor = that.getDescriptor();
+            var api = descriptor.exportJson();
+            var path = that.options.path || '';
+            return {
+                endpoint : path,
+                api : api
+            };
+        },
+
+        /**
+         * Returns true if the specified path corresponds to an API description
+         * endpoint. IE this endpoint should send a JSON description of all API
+         * methods available with this path prefix.
+         */
+        _isEndpointInfoPath : function(path) {
+            return (path.lastIndexOf(this.INFO_SUFFIX) === // 
+            path.length - this.INFO_SUFFIX.length);
         },
 
         /**
@@ -334,7 +367,7 @@
          * used to find an API method to invoke. Used internally by the
          * "_doHandle" method.
          */
-        _getPath : function(req) {
+        _getLocalizedPath : function(req) {
             var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
             var options = this.options || {};
             var prefix = options.path || '';
@@ -379,18 +412,14 @@
          *            a mandatory API descriptor defining all methods exposed
          *            via REST endpoints; this descriptor defines mapping of
          *            path parameters and used HTTP methods to call methods
-         * @param options.baseUrl
-         *            a base URL of the HTTP endpoint implementing the API
-         *            defined by the descriptor.
+         * @param options.client
+         *            (or options.baseUrl) the HTTP client or a baseUrl used to
+         *            create a new HTTP client.
          */
         initialize : function(options) {
             if (!options.descriptor) {
                 throw Mosaic.Errors.newError('API descriptor is not defined')
                         .code(501);
-            }
-            if (!options.baseUrl) {
-                throw Mosaic.Errors.newError('"baseUrl" is empty; ' + // 
-                'API endpoint URL is not defined').code(501);
             }
             var that = this;
             that.setOptions(options);
@@ -401,12 +430,21 @@
             _.each(config, function(obj, path) {
                 _.each(obj, function(methodName, http) {
                     that[methodName] = function(params) {
-                        var req = that.client.newRequest(path, http, params);
+                        var p = that._getFullPath(path, params);
+                        var req = that.client.newRequest(p, http, params);
                         var res = that.client.newResponse(req);
                         return that.handle(req, res);
                     };
                 });
             });
+        },
+
+        /**
+         * Handles the specified request to the remote API method and returns a
+         * promise with the response.
+         */
+        handle : function(req, res) {
+            return this.client.handle(req, res);
         },
 
         /**
@@ -418,14 +456,31 @@
             return new Mosaic.HttpClient.Superagent(this.options);
         },
 
-        /**
-         * Handles the specified request to the remote API method and returns a
-         * promise with the response.
-         */
-        handle : function(req, res) {
-            return this.client.handle(req, res);
-        },
-
+        /** Returns a full path for the specified method path. */
+        _getFullPath : function(methodPath, params) {
+            return Mosaic.PathMapper.formatPath(methodPath, params);
+        }
     });
- 
+
+    /**
+     * Loads API description and returns a client stub corresponding to the
+     * specified endpoint URL.
+     */
+    Mosaic.ApiDescriptor.HttpClientStub.load = function(endpointUrl) {
+        var httpClient = new Mosaic.HttpClient.Superagent({
+            baseUrl : endpointUrl
+        });
+        var req = httpClient.newRequest('.info');
+        var res = httpClient.newResponse(req);
+        return httpClient.handle(req, res).then(function(description) {
+            var apiInfo = description.api;
+            var descriptor = new Mosaic.ApiDescriptor();
+            descriptor.importJson(apiInfo);
+            return new Mosaic.ApiDescriptor.HttpClientStub({
+                path : description.endpoint,
+                descriptor : descriptor,
+                client : httpClient,
+            });
+        });
+    };
 })(module, require);

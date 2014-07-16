@@ -43,7 +43,7 @@
             if (!options.path) {
                 throw Mosaic.Errors.newError('Path is not defined');
             }
-            var path = this._getPath(options.path);
+            var path = this._getEndpointPath(options.path);
             options.path = path;
             var handler = new Mosaic.ApiDescriptor.HttpServerStub(options);
             var mask = path + '*prefix';
@@ -69,18 +69,13 @@
             var that = this;
             return Mosaic.P.then(function() {
                 var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
-                var obj = that._find(path);
-                if (!obj) {
+                var item = that._find(path);
+                if (!item) {
                     throw Mosaic.Errors.newError(404, //
                     'API handler not found. Path: "' + path + '".');
                 } else {
-                    var handler = obj.obj;
-                    if (that._isEndpointInfoPath(path)) {
-                        var json = that._getDescriptorJson(handler);
-                        res.send(200, json);
-                    } else {
-                        return handler.handle(req, res);
-                    }
+                    var handler = item.obj;
+                    return handler.handle(req, res);
                 }
             }).then(null, function(err) {
                 var errObj = Mosaic.Errors.toJSON(err);
@@ -98,27 +93,18 @@
             if (!obj)
                 return null;
             var handler = obj.obj;
-            return that._getDescriptorJson(handler);
+            var result = handler.getEndpointJson();
+            // var endpointPath = that._getEndpointPath('');
+            // result.endpoint = result.endpoint.substring(endpointPath.length);
+            return result;
         },
 
-        /**
-         * Returns true if the specified path corresponds to an API description
-         * endpoint. IE this endpoint should send a JSON description of all API
-         * methods available with this path prefix.
-         */
-        _isEndpointInfoPath : function(path) {
-            var suffix = '.info';
-            return (path.lastIndexOf(suffix) === path.length - suffix.length);
-        },
-
-        /** Returns a JSON descriptor for the specified handler */
-        _getDescriptorJson : function(handler) {
+        /** Returns a normalized and prefixed path. */
+        _getEndpointPath : function(path) {
             var that = this;
-            var descriptor = handler.getDescriptor();
-            return {
-                endpoint : handler.options.path,
-                api : descriptor.exportJson()
-            };
+            var prefix = that.options.path;
+            path = prefix + that._normalizePath(path);
+            return path;
         },
 
         /**
@@ -133,14 +119,6 @@
             path = this._normalizePath(path);
             var obj = this._mapping.find(path);
             return obj;
-        },
-
-        /** Returns a normalized and prefixed path. */
-        _getPath : function(path) {
-            var that = this;
-            var prefix = that.options.path;
-            path = prefix + that._normalizePath(path);
-            return path;
         },
 
         /**
