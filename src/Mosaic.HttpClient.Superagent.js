@@ -15,7 +15,6 @@
         initialize : function(options) {
             var init = Mosaic.HttpClient.prototype.initialize;
             init.call(this, options);
-            this.client = Superagent.agent();
         },
 
         http : function(req, res, callback) {
@@ -24,7 +23,7 @@
                 method = 'del';
             }
             method = method.toLowerCase();
-            var agent = this.client[method](req.url);
+            var agent = Superagent[method](req.url);
             _.each(req.headers, function(value, key) {
                 agent = agent.set(key, value);
             });

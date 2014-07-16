@@ -6,6 +6,7 @@
         "jquery" : "*",
         "underscore" : "*",
         "jquery" : "*",
+        "jquery-cookie" : "*",
         "requirejs" : "*",
         "superagent" : "*"
     }

@@ -41,6 +41,7 @@
                 http = obj.http;
                 method = obj.method;
             }
+            path = normalizePath(path);
             var conf = this._config[path] = this._config[path] || {};
             conf[http] = method;
             this._mapper.add(path, conf);
@@ -85,8 +86,30 @@
 
     });
 
+    /**
+     * Normalizes paths - add the first slash and remove a trail separator. If
+     * the specified path is empty (or null) then this method returns an empty
+     * string.
+     */
+    function normalizePath(path) {
+        if (!path || path === '') {
+            path = '';
+        } else {
+            if (path[0] != '/') {
+                path = '/' + path;
+            }
+            if (path[path.length - 1] === '/') {
+                path = path.substring(0, path.length - 1);
+            }
+        }
+        return path;
+    }
+
     /** Static methods */
     _.extend(Mosaic.ApiDescriptor, {
+
+        /** Make this method publicly available. */
+        normalizePath : normalizePath,
 
         /**
          * Automatically creates an API descriptor by reading properties
@@ -203,6 +226,15 @@
         /** This suffix is used to define URLs returning API descriptions. */
         INFO_SUFFIX : '.info',
 
+        /** Registers this server stub in the specified Express application. */
+        registerIn : function(app) {
+            var that = this;
+            var prefix = normalizePath(this.options.path) + '*';
+            app.all(prefix, function(req, res) {
+                that.handle(req, res).done();
+            });
+        },
+
         /**
          * Initializes this object and checks that the specified options contain
          * an API descriptor.
@@ -227,6 +259,7 @@
                 var instance = this.options.instance || this;
                 this.descriptor = Mosaic.ApiDescriptor.getDescriptor(instance);
             }
+            this.options.path = normalizePath(this.options.path);
             this._doHandle = this._wrapHandleMethod(this._doHandle);
         },
 
@@ -291,9 +324,8 @@
             var that = this;
             var descriptor = that.getDescriptor();
             var api = descriptor.exportJson();
-            var path = that.options.path || '';
             return {
-                endpoint : path,
+                endpoint : that.options.path,
                 api : api
             };
         },
@@ -370,8 +402,7 @@
          */
         _getLocalizedPath : function(req) {
             var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
-            var options = this.options || {};
-            var prefix = options.path || '';
+            var prefix = this.options.path;
             return path.substring(prefix.length);
         }
     });
@@ -467,9 +498,14 @@
      * Loads API description and returns a client stub corresponding to the
      * specified endpoint URL.
      */
-    Mosaic.ApiDescriptor.HttpClientStub.load = function(endpointUrl) {
+    Mosaic.ApiDescriptor.HttpClientStub.load = function(baseUrl, options) {
+        if (_.isObject(baseUrl)) {
+            options = baseUrl;
+            baseUrl = options.baseUrl;
+        }
+        options = options || {};
         var httpClient = new Mosaic.HttpClient.Superagent({
-            baseUrl : endpointUrl
+            baseUrl : baseUrl
         });
         var req = httpClient.newRequest('.info');
         var res = httpClient.newResponse(req);
@@ -477,11 +513,11 @@
             var apiInfo = description.api;
             var descriptor = new Mosaic.ApiDescriptor();
             descriptor.importJson(apiInfo);
-            return new Mosaic.ApiDescriptor.HttpClientStub({
+            return new Mosaic.ApiDescriptor.HttpClientStub(_.extend(options, {
                 path : description.endpoint,
                 descriptor : descriptor,
                 client : httpClient,
-            });
+            }));
         });
     };
 })(module, _dereq_);
@@ -542,7 +578,7 @@
         /**
          * Registers this API dispatcher with an express web application.
          */
-        register : function(app) {
+        registerIn : function(app) {
             var that = this;
             var prefix = (that.options.path || '') + '/*';
             app.all(prefix, function(req, res) {
@@ -650,7 +686,6 @@
         initialize : function(options) {
             var init = Mosaic.HttpClient.prototype.initialize;
             init.call(this, options);
-            this.client = Superagent.agent();
         },
 
         http : function(req, res, callback) {
@@ -659,7 +694,7 @@
                 method = 'del';
             }
             method = method.toLowerCase();
-            var agent = this.client[method](req.url);
+            var agent = Superagent[method](req.url);
             _.each(req.headers, function(value, key) {
                 agent = agent.set(key, value);
             });

@@ -109,10 +109,7 @@ describe('ApiDispatcher', function() {
                     path : '/first',
                     instance : new FirstType()
                 });
-                var prefix = (options.path || '') + '/*';
-                app.all(prefix, function(req, res) {
-                    dispatcher.handle(req, res).done();
-                });
+                dispatcher.registerIn(app);
                 return options;
             }, function(server) {
                 var baseUrl = Utils.getBaseUrl(options) + '/first';

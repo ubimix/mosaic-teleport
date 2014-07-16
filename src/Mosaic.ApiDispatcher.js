@@ -53,7 +53,7 @@
         /**
          * Registers this API dispatcher with an express web application.
          */
-        register : function(app) {
+        registerIn : function(app) {
             var that = this;
             var prefix = (that.options.path || '') + '/*';
             app.all(prefix, function(req, res) {
