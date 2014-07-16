@@ -262,8 +262,8 @@
             var http = req.method.toLowerCase();
             var conf = that.descriptor.get(path);
             if (!conf) {
-                throw Mosaic.Errors.newError('Path not found "' + path + '"')
-                        .code(404);
+                throw Mosaic.Errors.newError(404, //
+                'Path not found "' + path + '"');
             }
             var methodName = conf.obj[http];
             if (!methodName) {
@@ -337,7 +337,7 @@
         _getPath : function(req) {
             var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
             var options = this.options || {};
-            var prefix = options.pathPrefix || '';
+            var prefix = options.path || '';
             return path.substring(prefix.length);
         }
     });

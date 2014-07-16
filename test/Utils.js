@@ -5,17 +5,23 @@ module.exports = {
     startServer : startServer,
     newServer : newServer,
     newClient : newClient,
-    newApiDescriptorBuilder : newApiDescriptorBuilder
+    getBaseUrl : getBaseUrl,
+    newApiDescriptorBuilder : newApiDescriptorBuilder,
+    withServer : withServer
 };
 
 function getPort(options) {
     options = options || {};
     return options.port || 1234;
 }
+function getBaseUrl(options) {
+    options = options || {};
+    return 'http://localhost:' + getPort(options) + options.pathPrefix;
+}
+
 function newClient(options) {
-    options.baseUrl = 'http://localhost:' + //
-    getPort(options) + //
-    options.pathPrefix;
+    options = options || {};
+    options.baseUrl = getBaseUrl(options);
     var client = new Mosaic.ApiDescriptor.SuperagentClientStub(options);
     return client;
 }
@@ -45,7 +51,18 @@ function newServer(callback) {
     }
     return deferred.promise;
 }
-
+function withServer(init, test) {
+    var server;
+    return Mosaic.P.fin(newServer(init).then(function(s) {
+        server = s;
+        return test(server);
+    }), function() {
+        if (!server)
+            return;
+        server.close();
+        server = undefined;
+    });
+}
 function newApiDescriptorBuilder(options) {
     return function(app) {
         // Create and register an API stub handling requests

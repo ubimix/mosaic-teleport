@@ -83,7 +83,7 @@ describe('Remote API', function() {
         },
     });
     it('should be able to launch a remote API instance', function(done) {
-        withServer(Utils.newApiDescriptorBuilder(serverOptions),
+        Utils.withServer(Utils.newApiDescriptorBuilder(serverOptions),
                 function test(server) {
                     var client = Utils.newClient(clientOptions);
                     var options = {
@@ -120,7 +120,7 @@ describe('Mosaic.ApiDescriptor - automatic API instantiation', function() {
             instance : instance,
             pathPrefix : '/toto'
         };
-        withServer(Utils.newApiDescriptorBuilder(options),
+        Utils.withServer(Utils.newApiDescriptorBuilder(options),
                 function test(server) {
                     var client = Utils.newClient(options);
                     return client.sayHello({
@@ -132,19 +132,6 @@ describe('Mosaic.ApiDescriptor - automatic API instantiation', function() {
     });
 
 });
-
-function withServer(init, test) {
-    var server;
-    return Mosaic.P.fin(Utils.newServer(init).then(function(s) {
-        server = s;
-        return test(server);
-    }), function() {
-        if (!server)
-            return;
-        server.close();
-        server = undefined;
-    });
-}
 
 function testAuth(api, options) {
     return Mosaic.P
