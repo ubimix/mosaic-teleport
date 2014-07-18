@@ -456,7 +456,11 @@ Mosaic.ApiDescriptor.HttpClientStub = Handler.extend({
             _.each(obj, function(methodName, http) {
                 that[methodName] = function(params) {
                     var p = that._getFullPath(path, params);
-                    var req = that.client.newRequest(p, http, params);
+                    var req = that.client.newRequest({
+                        path : p,
+                        method : http,
+                        params : params
+                    });
                     var res = that.client.newResponse(req);
                     return that.handle(req, res);
                 };
@@ -500,7 +504,9 @@ Mosaic.ApiDescriptor.HttpClientStub.load = function(baseUrl, options) {
     var httpClient = new Mosaic.HttpClient.Superagent({
         baseUrl : baseUrl
     });
-    var req = httpClient.newRequest('.info');
+    var req = httpClient.newRequest({
+        path : '.info'
+    });
     var res = httpClient.newResponse(req);
     return httpClient.handle(req, res).then(function(description) {
         var apiInfo = description.api;

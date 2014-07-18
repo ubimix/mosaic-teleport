@@ -41,7 +41,8 @@ Mosaic.HttpClient = Mosaic.Class.extend({
                                 error.stack = trace + '\n\n' + error.stack;
                             } else {
                                 error = Mosaic.Errors.newError(
-                                        'Error: ' + res.status).code(res.status);
+                                        'Error: ' + res.status)
+                                        .code(res.status);
                             }
                         }
                     }
@@ -63,19 +64,16 @@ Mosaic.HttpClient = Mosaic.Class.extend({
      * Create a request object containing URL to invoke, method to invoke, query
      * parameters, HTTP headers and the main body.
      */
-    newRequest : function(path, method, params, body) {
-        method = (method || 'get').toUpperCase();
-        params = params || {};
-        body = body || params || {};
-        var url = this._toUrl(path);
-        return {
-            id : _.uniqueId('req-'),
-            url : url,
-            method : method,
-            query : {},
-            headers : {},
-            body : body
-        };
+    newRequest : function(options) {
+        options = options || {};
+        options.id = _.uniqueId('req-');
+        options.method = (options.method || 'get').toUpperCase();
+        options.params = options.params || {};
+        options.body = options.body || options.params || {};
+        options.url = this._toUrl(options.path);
+        options.query = options.query || {};
+        options.headers = options.headers || {};
+        return options;
     },
 
     /**

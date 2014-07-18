@@ -457,7 +457,11 @@ Mosaic.ApiDescriptor.HttpClientStub = Handler.extend({
             _.each(obj, function(methodName, http) {
                 that[methodName] = function(params) {
                     var p = that._getFullPath(path, params);
-                    var req = that.client.newRequest(p, http, params);
+                    var req = that.client.newRequest({
+                        path : p,
+                        method : http,
+                        params : params
+                    });
                     var res = that.client.newResponse(req);
                     return that.handle(req, res);
                 };
@@ -501,7 +505,9 @@ Mosaic.ApiDescriptor.HttpClientStub.load = function(baseUrl, options) {
     var httpClient = new Mosaic.HttpClient.Superagent({
         baseUrl : baseUrl
     });
-    var req = httpClient.newRequest('.info');
+    var req = httpClient.newRequest({
+        path : '.info'
+    });
     var res = httpClient.newResponse(req);
     return httpClient.handle(req, res).then(function(description) {
         var apiInfo = description.api;
@@ -746,7 +752,8 @@ Mosaic.HttpClient = Mosaic.Class.extend({
                                 '' + res.body.trace;
                                 error.stack = trace + '\n\n' + error.stack;
                             } else {
-                                error = Mosaic.Errors.newError('' + res.status)
+                                error = Mosaic.Errors.newError(
+                                        'Error: ' + res.status)
                                         .code(res.status);
                             }
                         }
@@ -769,19 +776,16 @@ Mosaic.HttpClient = Mosaic.Class.extend({
      * Create a request object containing URL to invoke, method to invoke, query
      * parameters, HTTP headers and the main body.
      */
-    newRequest : function(path, method, params, body) {
-        method = (method || 'get').toUpperCase();
-        params = params || {};
-        body = body || params || {};
-        var url = this._toUrl(path);
-        return {
-            id : _.uniqueId('req-'),
-            url : url,
-            method : method,
-            query : {},
-            headers : {},
-            body : body
-        };
+    newRequest : function(options) {
+        options = options || {};
+        options.id = _.uniqueId('req-');
+        options.method = (options.method || 'get').toUpperCase();
+        options.params = options.params || {};
+        options.body = options.body || options.params || {};
+        options.url = this._toUrl(options.path);
+        options.query = options.query || {};
+        options.headers = options.headers || {};
+        return options;
     },
 
     /**
