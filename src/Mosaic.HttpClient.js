@@ -40,8 +40,8 @@ Mosaic.HttpClient = Mosaic.Class.extend({
                                 '' + res.body.trace;
                                 error.stack = trace + '\n\n' + error.stack;
                             } else {
-                                error = Mosaic.Errors.newError('' + res.status)
-                                        .code(res.status);
+                                error = Mosaic.Errors.newError(
+                                        'Error: ' + res.status).code(res.status);
                             }
                         }
                     }

@@ -25,17 +25,6 @@ describe('Local API', function() {
     });
 });
 
-function closeServer(server, done) {
-    Mosaic.P.then(function() {
-        if (server) {
-            server.close();
-            return Mosaic.P.pause(100);
-        }
-    }).then(function() {
-        console.log('server closed!');
-    }).then(done, done).done();
-}
-
 describe('Remote API', function() {
     // This test don't keep session ID explicitly. The session ID
     // transferred back and forth in the 'x-session-id' HTTP header.
