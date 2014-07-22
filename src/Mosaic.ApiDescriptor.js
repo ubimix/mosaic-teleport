@@ -53,18 +53,21 @@ Mosaic.ApiDescriptor = Mosaic.Class.extend({
 
     /** Exports the content of this descriptor as a JSON object. */
     exportJson : function() {
-        var result = [];
+        var api = [];
+        var result = {
+            api : api
+        };
         var that = this;
         _.each(that._config, function(conf, path) {
             _.each(conf, function(method, http) {
-                result.push({
+                api.push({
                     path : path,
                     http : http,
                     method : method
                 });
             });
         });
-        result.sort(function(a, b) {
+        api.sort(function(a, b) {
             return a.path > b.path ? 1 : a.path < b.path ? -1 : 0;
         });
         return result;
@@ -73,7 +76,12 @@ Mosaic.ApiDescriptor = Mosaic.Class.extend({
     /** Imports the content of this descriptor from a JSON array. */
     importJson : function(json) {
         var that = this;
-        var array = _.toArray(json);
+        var array;
+        if (_.isObject(json) && _.isArray(json.api)) {
+            array = json.api;
+        } else {
+            array = _.toArray(json);
+        }
         _.each(array, function(conf) {
             that.add(conf);
         });
@@ -317,11 +325,9 @@ Mosaic.ApiDescriptor.HttpServerStub = Handler.extend({
     getEndpointJson : function() {
         var that = this;
         var descriptor = that.getDescriptor();
-        var api = descriptor.exportJson();
-        return {
-            endpoint : that.options.path,
-            api : api
-        };
+        var json = descriptor.exportJson();
+        json.endpoint = that.options.path;
+        return json;
     },
 
     /**

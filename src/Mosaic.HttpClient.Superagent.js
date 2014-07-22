@@ -16,17 +16,23 @@ Mosaic.HttpClient.Superagent = Mosaic.HttpClient.extend({
     },
 
     http : function(req, res, callback) {
-        var method = req.method || 'get';
+        var method = (req.method || 'get').toLowerCase();
         if (method == 'delete') {
             method = 'del';
         }
         method = method.toLowerCase();
         var agent = Superagent[method](req.url);
-        _.each(req.headers, function(value, key) {
-            agent = agent.set(key, value);
-        });
-        agent = agent.send(req.body);
+        if (this.options.formEncoded) {
+            agent.type('form');
+        }
+        var headers = _.extend({}, this.options.headers, req.headers);
+        agent.set(headers);
+        var query = _.extend({}, this.options.query, req.query);
+        agent.query(query);
+        var body = _.extend({}, this.options.body, req.body);
+        agent = agent.send(body);
         agent.end(function(err, r) {
+            // console.log(arguments);
             try {
                 if (r) {
                     res.status = r.status;
