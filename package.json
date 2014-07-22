@@ -1,7 +1,7 @@
 {
   "name": "mosaic-teleport",
   "version": "0.0.6",
-  "main": "src/index.js",
+  "main": "src",
   "licenses": [
     {
       "type": "MIT"
