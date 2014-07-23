@@ -164,7 +164,7 @@ describe('ApiDispatcher', function() {
                 });
             }).then(function() {
                 loaded = false;
-                return dispatcher.removeEndpoint(servicePath);
+                return dispatcher.removeEndpoint(servicePath + '/first');
             }).then(function() {
                 return Mosaic.ApiDescriptor.HttpClientStub.load(baseUrl)//
                 .then(function() {

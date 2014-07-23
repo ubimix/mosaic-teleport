@@ -340,8 +340,8 @@ Mosaic.ApiDescriptor.HttpServerStub = Handler.extend({
     _isEndpointInfoPath : function(path) {
         if (path === '' || path == '/')
             return true;
-        return (path.lastIndexOf(this.INFO_SUFFIX) === // 
-        path.length - this.INFO_SUFFIX.length);
+        var idx = path.lastIndexOf(this.INFO_SUFFIX);
+        return (idx >= 0 && idx === path.length - this.INFO_SUFFIX.length);
     },
 
     /**
@@ -576,16 +576,17 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
     },
 
     /** Removes an endpoint corresponding to the specified path. */
-    removeEndpoint : function(options) {
+    removeEndpoint : function(path) {
         var that = this;
         return Mosaic.P.then(function() {
-            if (_.isString(options)) {
-                options = {
-                    path : options
-                };
+            var mask = that._prepareEndpointMask({
+                path : path
+            });
+            var result = that._mapping.remove(mask);
+            if (!result) {
+                throw Mosaic.Errors.newError('No endpoint is registered ' + //
+                'for this path. Path: "' + path + '".').code(404);
             }
-            var mask = that._prepareEndpointMask(options);
-            that._mapping.remove(mask);
         });
     },
 
@@ -656,6 +657,10 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
      */
     _prepareEndpointMask : function(options) {
         var that = this;
+        var idx = options.path.lastIndexOf('.');
+        if (idx >= 0) {
+            options.path = options.path.substring(0, idx);
+        }
         options.path = that._normalizePath(options.path);
         options.mask = options.path + '*prefix';
         return options.mask;
@@ -926,7 +931,8 @@ var PathMapper = Mosaic.PathMapper = Mosaic.Class.extend({
             if (!handler.regexp.test(path))
                 return;
             var params = {};
-            var array = handler.regexp.exec(path).slice(1);
+            var regexp = handler.regexp.exec(path);
+            var array = regexp.slice(1);
             var idx = 0;
             _.each(array, function(param) {
                 var name = handler.names[idx++];

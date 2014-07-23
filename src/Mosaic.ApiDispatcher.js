@@ -53,9 +53,8 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
             });
             var result = that._mapping.remove(mask);
             if (!result) {
-                throw Mosaic.Errors.newError(
-                        'No endpoint is registered ' + 'for this path. Path: "'
-                                + path + '".').code(404);
+                throw Mosaic.Errors.newError('No endpoint is registered ' + //
+                'for this path. Path: "' + path + '".').code(404);
             }
         });
     },
