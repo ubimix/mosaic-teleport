@@ -135,27 +135,24 @@ describe('ApiDispatcher', function() {
         };
         var loaded = false;
         it('should be able handle remote API calls', function(done) {
+            var service = new FirstType();
+            var servicePath = '/first';
+            var dispatcher = new Mosaic.ApiDispatcher(options);
+            dispatcher._loadEndpoint = function(path) {
+                if (service && path.indexOf('/toto/first') === 0) {
+                    loaded = true;
+                    return {
+                        path : servicePath,
+                        instance : service
+                    };
+                }
+            };
+            var baseUrl = Utils.getBaseUrl(options) + '/first';
             Utils.withServer(function(app) {
-                var dispatcher = new Mosaic.ApiDispatcher(options);
-                dispatcher._loadEndpoint = function(path) {
-                    if (path.indexOf('/toto/first') === 0) {
-                        loaded = true;
-                        path = path.substring(options.path.length);
-                        var idx = path.lastIndexOf('.');
-                        if (idx > 0) {
-                            path = path.substring(0, idx);
-                        }
-                        return {
-                            path : path,
-                            instance : new FirstType()
-                        };
-                    }
-                };
                 dispatcher.registerIn(app);
                 return options;
             }, function(server) {
                 expect(loaded).to.eql(false);
-                var baseUrl = Utils.getBaseUrl(options) + '/first';
                 return Mosaic.ApiDescriptor.HttpClientStub.load(baseUrl)//
                 .then(function(client) {
                     expect(loaded).to.eql(true);
@@ -166,6 +163,15 @@ describe('ApiDispatcher', function() {
                             msg : 'Hello, John Smith!'
                         });
                     });
+                });
+            }).then(function() {
+                dispatcher.removeEndpoint(servicePath);
+                loaded = false;
+                return Mosaic.ApiDescriptor.HttpClientStub.load(baseUrl)//
+                .then(function() {
+                    fail();
+                }, function(err) {
+                    expect(loaded).to.eql(false);
                 });
             }).then(done, done).done();
         });

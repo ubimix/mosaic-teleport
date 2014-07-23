@@ -39,11 +39,21 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
         if (!options.path) {
             throw Mosaic.Errors.newError('Path is not defined');
         }
-        var path = this._getEndpointPath(options.path);
-        options.path = path;
+        var mask = that._getEndpointMask(options);
         var handler = new Mosaic.ApiDescriptor.HttpServerStub(options);
-        var mask = path + '*prefix';
         that._mapping.add(mask, handler);
+    },
+
+    /** Removes an endpoint corresponding to the specified path. */
+    removeEndpoint : function(options) {
+        var that = this;
+        if (_.isString(options)) {
+            options = {
+                path : options
+            };
+        }
+        var mask = that._getEndpointMask(options);
+        that._mapping.remove(mask);
     },
 
     /**
@@ -122,6 +132,18 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
         var prefix = that.options.path;
         path = prefix + that._normalizePath(path);
         return path;
+    },
+
+    /**
+     * Builds and returns a mask for an endpoint defined by the path options
+     * parameter.
+     */
+    _getEndpointMask : function(options) {
+        var path = this._getEndpointPath(options.path);
+        options.path = path;
+        var mask = path + '*prefix';
+        options.mask = mask;
+        return mask;
     },
 
     /**
