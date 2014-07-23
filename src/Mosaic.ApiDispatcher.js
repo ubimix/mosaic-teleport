@@ -45,16 +45,18 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
     },
 
     /** Removes an endpoint corresponding to the specified path. */
-    removeEndpoint : function(options) {
+    removeEndpoint : function(path) {
         var that = this;
         return Mosaic.P.then(function() {
-            if (_.isString(options)) {
-                options = {
-                    path : options
-                };
+            var mask = that._prepareEndpointMask({
+                path : path
+            });
+            var result = that._mapping.remove(mask);
+            if (!result) {
+                throw Mosaic.Errors.newError(
+                        'No endpoint is registered ' + 'for this path. Path: "'
+                                + path + '".').code(404);
             }
-            var mask = that._prepareEndpointMask(options);
-            that._mapping.remove(mask);
         });
     },
 
@@ -125,6 +127,10 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
      */
     _prepareEndpointMask : function(options) {
         var that = this;
+        var idx = options.path.lastIndexOf('.');
+        if (idx >= 0) {
+            options.path = options.path.substring(0, idx);
+        }
         options.path = that._normalizePath(options.path);
         options.mask = options.path + '*prefix';
         return options.mask;

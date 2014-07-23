@@ -72,7 +72,8 @@ var PathMapper = Mosaic.PathMapper = Mosaic.Class.extend({
             if (!handler.regexp.test(path))
                 return;
             var params = {};
-            var array = handler.regexp.exec(path).slice(1);
+            var regexp = handler.regexp.exec(path);
+            var array = regexp.slice(1);
             var idx = 0;
             _.each(array, function(param) {
                 var name = handler.names[idx++];
