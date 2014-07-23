@@ -88,13 +88,18 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
         return Mosaic.P.then(function() {
             path = that._normalizePath(path);
             var item = that._mapping.find(path);
-            if (!item) {
-                var options = that._loadEndpoint(path);
+            if (item)
+                return item;
+            return Mosaic.P.then(function() {
+                return that._loadEndpoint(path);
+            }).then(function(options) {
                 if (options) {
                     that.addEndpoint(options);
+                    item = that._mapping.find(path);
                 }
-                item = that._mapping.find(path);
-            }
+                return item;
+            });
+        }).then(function(item) {
             return item ? item.obj : null;
         });
     },
