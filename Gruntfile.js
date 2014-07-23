@@ -1,7 +1,7 @@
 module.exports = function(grunt) {
 
     // Project configuration.
-    var banner = '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n';
+    var banner = '/*! <%= pkg.name %> v<%= pkg.version %> */\n';
     grunt.initConfig({
         pkg : grunt.file.readJSON('package.json'),
         mochaTest : {
