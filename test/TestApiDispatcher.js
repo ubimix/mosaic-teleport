@@ -128,4 +128,46 @@ describe('ApiDispatcher', function() {
 
     });
 
+    describe('should automatically load new services', function(done) {
+        var options = {
+            port : 1234,
+            path : '/toto'
+        };
+        var loaded = false;
+        it('should be able handle remote API calls', function(done) {
+            Utils.withServer(function(app) {
+                var dispatcher = new Mosaic.ApiDispatcher(options);
+                dispatcher._loadEndpoint = function(path) {
+                    if (path.indexOf('/toto/first') === 0) {
+                        loaded = true;
+                        path = path.substring(options.path.length);
+                        var idx = path.lastIndexOf('.');
+                        if (idx > 0) {
+                            path = path.substring(0, idx);
+                        }
+                        return {
+                            path : path,
+                            instance : new FirstType()
+                        };
+                    }
+                };
+                dispatcher.registerIn(app);
+                return options;
+            }, function(server) {
+                expect(loaded).to.eql(false);
+                var baseUrl = Utils.getBaseUrl(options) + '/first';
+                return Mosaic.ApiDescriptor.HttpClientStub.load(baseUrl)//
+                .then(function(client) {
+                    expect(loaded).to.eql(true);
+                    return client.sayHello({
+                        name : 'John Smith'
+                    }).then(function(result) {
+                        expect(result).to.eql({
+                            msg : 'Hello, John Smith!'
+                        });
+                    });
+                });
+            }).then(done, done).done();
+        });
+    });
 });

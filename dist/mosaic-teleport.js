@@ -597,6 +597,15 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
             var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
             var item = that._find(path);
             if (!item) {
+                var options = that._loadEndpoint(path);
+                if (options) {
+                    that.addEndpoint(options);
+                }
+                item = that._find(path);
+            }
+            return item;
+        }).then(function(item) {
+            if (!item) {
                 throw Mosaic.Errors.newError(404, //
                 'API handler not found. Path: "' + path + '".');
             } else {
@@ -623,6 +632,18 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
         // var endpointPath = that._getEndpointPath('');
         // result.endpoint = result.endpoint.substring(endpointPath.length);
         return result;
+    },
+
+    /**
+     * This method could overloaded in subclasses to load a service
+     * corresponding to the specified path. This method should return an options
+     * object to register a new endpoint using the "addEndpoint" method - it has
+     * contain the following fields 1) "options.path" - path prefix
+     * corresponding to the service methods 2) "options.instance" - instance of
+     * the service instance handling requests.
+     */
+    _loadEndpoint : function(path) {
+        return null;
     },
 
     /** Returns a normalized and prefixed path. */
