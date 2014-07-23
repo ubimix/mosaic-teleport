@@ -338,7 +338,7 @@ Mosaic.ApiDescriptor.HttpServerStub = Handler.extend({
      * methods available with this path prefix.
      */
     _isEndpointInfoPath : function(path) {
-        if (path === '')
+        if (path === '' || path == '/')
             return true;
         return (path.lastIndexOf(this.INFO_SUFFIX) === // 
         path.length - this.INFO_SUFFIX.length);
