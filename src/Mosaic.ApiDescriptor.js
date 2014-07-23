@@ -300,7 +300,8 @@ Mosaic.ApiDescriptor.HttpServerStub = Handler.extend({
      */
     _doHandle : function(req, res) {
         var that = this;
-        var path = that._getLocalizedPath(req);
+        var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
+        path = that._getLocalizedPath(path);
         if (that._isEndpointInfoPath(path)) {
             var json = that.getEndpointJson();
             return json;
@@ -336,6 +337,8 @@ Mosaic.ApiDescriptor.HttpServerStub = Handler.extend({
      * methods available with this path prefix.
      */
     _isEndpointInfoPath : function(path) {
+        if (path === '' || path == '/')
+            return true;
         return (path.lastIndexOf(this.INFO_SUFFIX) === // 
         path.length - this.INFO_SUFFIX.length);
     },
@@ -395,12 +398,10 @@ Mosaic.ApiDescriptor.HttpServerStub = Handler.extend({
     },
 
     /**
-     * Returns a path corresponding to the specified request. This path is used
-     * to find an API method to invoke. Used internally by the "_doHandle"
-     * method.
+     * Returns a localized version of the specified path. This path is used to
+     * find an API method to invoke. Used internally by the "_doHandle" method.
      */
-    _getLocalizedPath : function(req) {
-        var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
+    _getLocalizedPath : function(path) {
         var prefix = this.options.path;
         return path.substring(prefix.length);
     }

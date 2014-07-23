@@ -301,7 +301,8 @@ Mosaic.ApiDescriptor.HttpServerStub = Handler.extend({
      */
     _doHandle : function(req, res) {
         var that = this;
-        var path = that._getLocalizedPath(req);
+        var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
+        path = that._getLocalizedPath(path);
         if (that._isEndpointInfoPath(path)) {
             var json = that.getEndpointJson();
             return json;
@@ -337,6 +338,8 @@ Mosaic.ApiDescriptor.HttpServerStub = Handler.extend({
      * methods available with this path prefix.
      */
     _isEndpointInfoPath : function(path) {
+        if (path === '')
+            return true;
         return (path.lastIndexOf(this.INFO_SUFFIX) === // 
         path.length - this.INFO_SUFFIX.length);
     },
@@ -396,12 +399,10 @@ Mosaic.ApiDescriptor.HttpServerStub = Handler.extend({
     },
 
     /**
-     * Returns a path corresponding to the specified request. This path is used
-     * to find an API method to invoke. Used internally by the "_doHandle"
-     * method.
+     * Returns a localized version of the specified path. This path is used to
+     * find an API method to invoke. Used internally by the "_doHandle" method.
      */
-    _getLocalizedPath : function(req) {
-        var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
+    _getLocalizedPath : function(path) {
         var prefix = this.options.path;
         return path.substring(prefix.length);
     }
@@ -569,31 +570,22 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
         if (!options.path) {
             throw Mosaic.Errors.newError('Path is not defined');
         }
-        var mask = that._getEndpointMask(options);
-        var handler = new Mosaic.ApiDescriptor.HttpServerStub(options);
+        var mask = that._prepareEndpointMask(options);
+        var handler = that._newServerStub(options);
         that._mapping.add(mask, handler);
     },
 
     /** Removes an endpoint corresponding to the specified path. */
     removeEndpoint : function(options) {
         var that = this;
-        if (_.isString(options)) {
-            options = {
-                path : options
-            };
-        }
-        var mask = that._getEndpointMask(options);
-        that._mapping.remove(mask);
-    },
-
-    /**
-     * Registers this API dispatcher with an express web application.
-     */
-    registerIn : function(app) {
-        var that = this;
-        var prefix = (that.options.path || '') + '/*';
-        app.all(prefix, function(req, res) {
-            that.handle(req, res).done();
+        return Mosaic.P.then(function() {
+            if (_.isString(options)) {
+                options = {
+                    path : options
+                };
+            }
+            var mask = that._prepareEndpointMask(options);
+            that._mapping.remove(mask);
         });
     },
 
@@ -605,23 +597,14 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
         var that = this;
         return Mosaic.P.then(function() {
             var path = Mosaic.ApiDescriptor.HttpServerStub.getPath(req);
-            var item = that._find(path);
-            if (!item) {
-                var options = that._loadEndpoint(path);
-                if (options) {
-                    that.addEndpoint(options);
+            return that.loadEndpoint(path).then(function(handler) {
+                if (!handler) {
+                    throw Mosaic.Errors.newError(404, //
+                    'API handler not found. Path: "' + path + '".');
+                } else {
+                    return handler.handle(req, res);
                 }
-                item = that._find(path);
-            }
-            return item;
-        }).then(function(item) {
-            if (!item) {
-                throw Mosaic.Errors.newError(404, //
-                'API handler not found. Path: "' + path + '".');
-            } else {
-                var handler = item.obj;
-                return handler.handle(req, res);
-            }
+            });
         }).then(null, function(err) {
             var errObj = Mosaic.Errors.toJSON(err);
             errObj.status = errObj.status || 500;
@@ -629,19 +612,30 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
         });
     },
 
-    /**
-     * Returns a JSON description corresponding to the specified path.
-     */
-    getDescriptorJson : function(path) {
+    /** Loads information about an endpoint corresponding to the specified path. */
+    loadEndpoint : function(path) {
         var that = this;
-        var obj = that._find(path);
-        if (!obj)
-            return null;
-        var handler = obj.obj;
-        var result = handler.getEndpointJson();
-        // var endpointPath = that._getEndpointPath('');
-        // result.endpoint = result.endpoint.substring(endpointPath.length);
-        return result;
+        return Mosaic.P.then(function() {
+            path = that._normalizePath(path);
+            var item = that._mapping.find(path);
+            if (!item) {
+                var options = that._loadEndpoint(path);
+                if (options) {
+                    that.addEndpoint(options);
+                }
+                item = that._mapping.find(path);
+            }
+            return item ? item.obj : null;
+        });
+    },
+
+    /**
+     * Creates and returns a new server stub providing remote access to the
+     * given service instance.
+     */
+    _newServerStub : function(options) {
+        var handler = new Mosaic.ApiDescriptor.HttpServerStub(options);
+        return handler;
     },
 
     /**
@@ -656,38 +650,15 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
         return null;
     },
 
-    /** Returns a normalized and prefixed path. */
-    _getEndpointPath : function(path) {
-        var that = this;
-        var prefix = that.options.path;
-        path = prefix + that._normalizePath(path);
-        return path;
-    },
-
     /**
      * Builds and returns a mask for an endpoint defined by the path options
      * parameter.
      */
-    _getEndpointMask : function(options) {
-        var path = this._getEndpointPath(options.path);
-        options.path = path;
-        var mask = path + '*prefix';
-        options.mask = mask;
-        return mask;
-    },
-
-    /**
-     * Finds and returns an API handler configuration corresponding to the
-     * specified path.
-     * 
-     * @return an object containing the following fields: 1) "prefix" path part
-     *         of the endpoint 2) "obj" the handler object (an
-     *         Mosaic.ApiDescriptor.HttpServerStub instance)
-     */
-    _find : function(path) {
-        path = this._normalizePath(path);
-        var obj = this._mapping.find(path);
-        return obj;
+    _prepareEndpointMask : function(options) {
+        var that = this;
+        options.path = that._normalizePath(options.path);
+        options.mask = options.path + '*prefix';
+        return options.mask;
     },
 
     /**

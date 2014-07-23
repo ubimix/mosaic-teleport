@@ -16,7 +16,8 @@ function getPort(options) {
 }
 function getBaseUrl(options) {
     options = options || {};
-    return 'http://localhost:' + getPort(options) + options.path;
+    var path = options.path || '';
+    return 'http://localhost:' + getPort(options) + path;
 }
 
 function newClient(options) {

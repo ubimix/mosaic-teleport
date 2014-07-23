@@ -31,88 +31,85 @@ describe('ApiDispatcher', function() {
         })
     });
 
-    it('should be able to provide API description for each path', function() {
-        var dispatcher = new Mosaic.ApiDispatcher({
-            path : '/toto'
-        });
-        dispatcher.addEndpoint({
-            path : '/first',
-            instance : new FirstType()
-        });
-        dispatcher.addEndpoint({
-            path : '/second',
-            instance : new SecondType()
-        });
+    it('should be able to provide API description for each path',
+            function(done) {
+                function testEndpointJson(dispatcher, path, control) {
+                    return dispatcher.loadEndpoint(path).then(
+                            function(handler) {
+                                expect(!!handler).to.eql(true);
+                                var json = handler.getEndpointJson();
+                                expect(json).to.eql(control);
+                            });
+                }
+                var dispatcher = new Mosaic.ApiDispatcher({});
+                dispatcher.addEndpoint({
+                    path : '/first',
+                    instance : new FirstType()
+                });
+                dispatcher.addEndpoint({
+                    path : '/toto/second',
+                    instance : new SecondType()
+                });
 
-        var descriptorJson = dispatcher.getDescriptorJson('/toto/first');
-        expect(descriptorJson).to.eql({
-            endpoint : '/toto/first',
-            api : [ {
-                path : '/bye',
-                http : 'get',
-                method : 'sayGoodbye',
-            }, {
-                path : '/hello',
-                http : 'get',
-                method : 'sayHello'
-            } ]
-        });
-
-        descriptorJson = dispatcher.getDescriptorJson('/toto/first/bye');
-        expect(descriptorJson).to.eql({
-            endpoint : '/toto/first',
-            api : [ {
-                path : '/bye',
-                http : 'get',
-                method : 'sayGoodbye',
-            }, {
-                path : '/hello',
-                http : 'get',
-                method : 'sayHello'
-            } ]
-        });
-
-        descriptorJson = dispatcher.getDescriptorJson('/toto/first/bye');
-        expect(descriptorJson).to.eql({
-            endpoint : '/toto/first',
-            api : [ {
-                path : '/bye',
-                http : 'get',
-                method : 'sayGoodbye',
-            }, {
-                path : '/hello',
-                http : 'get',
-                method : 'sayHello'
-            } ]
-        });
-
-        descriptorJson = dispatcher.getDescriptorJson('/toto/second');
-        expect(descriptorJson).to.eql({
-            endpoint : '/toto/second',
-            api : [ {
-                path : '/message',
-                http : 'post',
-                method : 'sendMsg'
-            } ]
-        });
-    });
+                return Mosaic.P.then(function() {
+                    return testEndpointJson(dispatcher, '/first', {
+                        endpoint : '/first',
+                        api : [ {
+                            path : '/bye',
+                            http : 'get',
+                            method : 'sayGoodbye',
+                        }, {
+                            path : '/hello',
+                            http : 'get',
+                            method : 'sayHello'
+                        } ]
+                    });
+                }).then(function() {
+                    return testEndpointJson(dispatcher, '/first/bye', {
+                        endpoint : '/first',
+                        api : [ {
+                            path : '/bye',
+                            http : 'get',
+                            method : 'sayGoodbye',
+                        }, {
+                            path : '/hello',
+                            http : 'get',
+                            method : 'sayHello'
+                        } ]
+                    });
+                }).then(function() {
+                    return testEndpointJson(dispatcher, '/toto/second', {
+                        endpoint : '/toto/second',
+                        api : [ {
+                            path : '/message',
+                            http : 'post',
+                            method : 'sendMsg'
+                        } ]
+                    });
+                }).then(function() {
+                    done();
+                }, function(err) {
+                    done(err);
+                }).done();
+            });
 
     describe('should manage remote calls', function() {
         var options = {
-            port : 1234,
-            path : '/toto'
+            port : 1234
         };
         it('should be able handle remote API calls', function(done) {
             Utils.withServer(function(app) {
                 var dispatcher = new Mosaic.ApiDispatcher(options);
                 dispatcher.addEndpoint({
-                    path : '/first',
+                    path : '/toto/first',
                     instance : new FirstType()
                 });
-                dispatcher.registerIn(app);
+                app.all('/toto*', function(req, res) {
+                    dispatcher.handle(req, res).done();
+                });
                 return options;
             }, function(server) {
-                var baseUrl = Utils.getBaseUrl(options) + '/first';
+                var baseUrl = Utils.getBaseUrl(options) + '/toto/first';
                 return Mosaic.ApiDescriptor.HttpClientStub.load(baseUrl)//
                 .then(function(client) {
                     return client.sayHello({
@@ -130,26 +127,27 @@ describe('ApiDispatcher', function() {
 
     describe('should automatically load new services', function(done) {
         var options = {
-            port : 1234,
-            path : '/toto'
+            port : 1234
         };
         var loaded = false;
         it('should be able handle remote API calls', function(done) {
             var service = new FirstType();
-            var servicePath = '/first';
+            var servicePath = '/toto';
             var dispatcher = new Mosaic.ApiDispatcher(options);
             dispatcher._loadEndpoint = function(path) {
-                if (service && path.indexOf('/toto/first') === 0) {
+                if (service && path.indexOf(servicePath + '/first') === 0) {
                     loaded = true;
                     return {
-                        path : servicePath,
+                        path : servicePath + '/first',
                         instance : service
                     };
                 }
             };
-            var baseUrl = Utils.getBaseUrl(options) + '/first';
+            var baseUrl = Utils.getBaseUrl(options) + servicePath + '/first';
             Utils.withServer(function(app) {
-                dispatcher.registerIn(app);
+                app.all(servicePath + '/*', function(req, res) {
+                    dispatcher.handle(req, res).done();
+                });
                 return options;
             }, function(server) {
                 expect(loaded).to.eql(false);
@@ -165,8 +163,9 @@ describe('ApiDispatcher', function() {
                     });
                 });
             }).then(function() {
-                dispatcher.removeEndpoint(servicePath);
                 loaded = false;
+                return dispatcher.removeEndpoint(servicePath);
+            }).then(function() {
                 return Mosaic.ApiDescriptor.HttpClientStub.load(baseUrl)//
                 .then(function() {
                     fail();
