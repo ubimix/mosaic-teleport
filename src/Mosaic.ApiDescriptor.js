@@ -339,8 +339,8 @@ Mosaic.ApiDescriptor.HttpServerStub = Handler.extend({
     _isEndpointInfoPath : function(path) {
         if (path === '' || path == '/')
             return true;
-        return (path.lastIndexOf(this.INFO_SUFFIX) === // 
-        path.length - this.INFO_SUFFIX.length);
+        var idx = path.lastIndexOf(this.INFO_SUFFIX);
+        return (idx >= 0 && idx === path.length - this.INFO_SUFFIX.length);
     },
 
     /**
