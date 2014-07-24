@@ -721,18 +721,22 @@ Mosaic.HttpClient.Superagent = Mosaic.HttpClient.extend({
             method = 'del';
         }
         method = method.toLowerCase();
+        var headers = _.extend({}, this.options.headers, req.headers);
+        var query = _.extend({}, this.options.query, req.query);
+        var body = _.extend({}, this.options.body, req.body);
+        if (req.params) {
+            if (method === 'put' || method === 'post') {
+                _.extend(body, req.params);
+            } else {
+                _.extend(query, req.params);
+            }
+        }
+
         var agent = Superagent[method](req.url);
         if (this.options.formEncoded) {
             agent.type('form');
         }
-        var headers = _.extend({}, this.options.headers, req.headers);
-        agent.set(headers);
-        var query = _.extend({}, this.options.query, req.query);
-        agent.query(query);
-        var body = _.extend({}, this.options.body, req.body);
-        agent = agent.send(body);
-        agent.end(function(err, r) {
-            // console.log(arguments);
+        agent.set(headers).query(query).send(body).end(function(err, r) {
             try {
                 if (r) {
                     res.status = r.status;
