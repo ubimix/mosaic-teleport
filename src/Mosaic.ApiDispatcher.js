@@ -33,12 +33,6 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
      */
     addEndpoint : function(options) {
         var that = this;
-        if (!options.instance) {
-            throw Mosaic.Errors.newError('API implementation is not defined');
-        }
-        if (!options.path) {
-            throw Mosaic.Errors.newError('Path is not defined');
-        }
         var mask = that._prepareEndpointMask(options);
         var handler = that._newServerStub(options);
         that._mapping.add(mask, handler);
@@ -109,7 +103,16 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
      * given service instance.
      */
     _newServerStub : function(options) {
-        var handler = new Mosaic.ApiDescriptor.HttpServerStub(options);
+        var instance = options.stub || options.instance;
+        if (!instance) {
+            throw Mosaic.Errors.newError('API implementation is not defined');
+        }
+        var handler;
+        if (Mosaic.ApiDescriptor.HttpServerStub.hasInstance(instance)) {
+            handler = instance;
+        } else {
+            handler = new Mosaic.ApiDescriptor.HttpServerStub(options);
+        }
         return handler;
     },
 
@@ -131,6 +134,9 @@ Mosaic.ApiDispatcher = Mosaic.Class.extend({
      */
     _prepareEndpointMask : function(options) {
         var that = this;
+        if (!options.path) {
+            throw Mosaic.Errors.newError('Path is not defined');
+        }
         var idx = options.path.lastIndexOf('.');
         if (idx >= 0) {
             options.path = options.path.substring(0, idx);

@@ -512,7 +512,7 @@ Mosaic.ApiDescriptor.HttpClientStub.load = function(baseUrl, options) {
         baseUrl : baseUrl
     });
     var req = httpClient.newRequest({
-        path : '.info'
+        path : ''
     });
     var res = httpClient.newResponse(req);
     return httpClient.handle(req, res).then(function(description) {
