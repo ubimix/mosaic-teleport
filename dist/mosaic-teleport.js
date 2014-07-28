@@ -1,4 +1,4 @@
-/*! mosaic-teleport v0.0.13 | License: MIT  */
+/*! mosaic-teleport v0.0.15 | License: MIT  */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("mosaic-commons"), require("underscore"), require("superagent"));
@@ -361,11 +361,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	        return Mosaic.P.then(function() {
 	            return that._doHandle(req, res);
 	        }).then(function(obj) {
-	            res.send(200, obj || '');
+	            res.status(200).send(obj || '');
 	        }, function(err) {
 	            var errObj = Mosaic.Errors.toJSON(err);
 	            errObj.status = errObj.status || 500;
-	            res.send(errObj.status, errObj);
+	            res.status(errObj.status).send(errObj);
 	        });
 	    },
 
