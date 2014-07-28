@@ -1,4 +1,4 @@
-/*! mosaic-teleport v0.0.12 | License: MIT  */
+/*! mosaic-teleport v0.0.13 | License: MIT  */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("mosaic-commons"), require("underscore"), require("superagent"));
