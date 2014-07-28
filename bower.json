@@ -1,10 +1,7 @@
 {
-    "name" : "mosaic-teleport",
-    "version" : "0.0.12",
-    "main" : "dist/mosaic-teleport.js",
+    "name": "mosaic-teleport",
+  	"version": "0.0.13",
+    "main" : "src",
     "dependencies" : {
-        "mosaic-commons" : "*",
-        "superagent" : "~0.18.2",
-        "underscore" : "~1.4.4"
     }
 }

@@ -1,4 +1,4 @@
 mosaic-teleport
-===============
+=========================
 
-A client/server RPC library
+A short description of this module.
