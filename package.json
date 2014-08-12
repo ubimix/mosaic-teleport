@@ -16,7 +16,8 @@
   "dependencies": {
     "mosaic-commons": "*",
     "underscore": "~1.4.4",
-    "superagent": "~0.18.0"
+    "superagent": "~0.18.0",
+    "amdefine": "^0.1.0"
   },
   "devDependencies": {
     "mocha": "*",
