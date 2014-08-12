@@ -1,5 +1,5 @@
 /*!
- * mosaic-teleport v0.0.16 | License: MIT 
+ * mosaic-teleport v0.0.17 | License: MIT 
  * 
  */
 (function webpackUniversalModuleDefinition(root, factory) {
