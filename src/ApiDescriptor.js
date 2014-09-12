@@ -45,15 +45,22 @@ function(require) {
          * 
          */
         add : function(path, http, method) {
+            var conf;
             if (_.isObject(path)) {
-                var obj = path;
-                path = obj.path;
-                http = obj.http;
-                method = obj.method;
+                conf = path;
+                path = conf.path;
+                http = conf.http;
+                method = conf.method;
+            } else {
+                conf = {
+                    http : http
+                };
             }
-            path = normalizePath(path);
-            var conf = this._config[path] = this._config[path] || {};
+            var path = normalizePath(path);
+            this._config[path] = _.extend({}, this._config[path], conf);
+            conf.path = path;
             conf[http] = method;
+            delete conf.method;
             this._mapper.add(path, conf);
             return this;
         },
@@ -74,13 +81,7 @@ function(require) {
             };
             var that = this;
             _.each(that._config, function(conf, path) {
-                _.each(conf, function(method, http) {
-                    api.push({
-                        path : path,
-                        http : http,
-                        method : method
-                    });
-                });
+                api.push(conf);
             });
             api.sort(function(a, b) {
                 return a.path > b.path ? 1 : a.path < b.path ? -1 : 0;
@@ -155,11 +156,13 @@ function(require) {
                 var method = service[name];
                 if (!method.http || !method.path)
                     return;
-                var obj = {
-                    method : name,
-                    http : method.http,
-                    path : method.path
-                };
+                var obj = {};
+                _.each(_.keys(method), function(key) {
+                    obj[key] = method[key];
+                });
+                obj.method = name;
+                obj.http = method.http;
+                obj.path = method.path;
                 result.push(obj);
             });
             return result;
@@ -171,10 +174,11 @@ function(require) {
          * ApiDescriptor instance from class (see the
          * ApiDescriptor.getDescriptor and ApiDescriptor.getDescriptorJson).
          */
-        bind : function(path, http, method) {
-            method.http = http;
-            method.path = path;
-            return method;
+        bind : function(path, http, method, options) {
+            return _.extend(method, {
+                http : http,
+                path : path
+            }, options);
         }
     });
 
@@ -333,7 +337,15 @@ function(require) {
                     .newError('HTTP method "' + http.toUpperCase() + //
                     '" is not supported. Path: "' + path + '".').code(404);
                 }
-                return that._callMethod(req, res, methodName, conf.params);
+                var results = that._callMethod(req, res, methodName,
+                        conf.params);
+                var headers = conf.obj.headers;
+                if (headers && res.setHeader) {
+                    _.each(headers, function(header, key) {
+                        res.setHeader(key, header);
+                    });
+                }
+                return results;
             }
         },
 
@@ -398,7 +410,8 @@ function(require) {
                 .code(500);
             }
             var params = that._getMethodParams(method, urlParams, req, res);
-            return f.call(instance, params);
+            var result = f.call(instance, params);
+            return result;
         },
 
         /**
