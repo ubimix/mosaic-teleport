@@ -38,7 +38,6 @@ function(require) {
                     _.extend(query, req.params);
                 }
             }
-
             var agent = Superagent[method](req.url);
             if (this.options.formEncoded) {
                 agent.type('form');

@@ -1,5 +1,5 @@
 /*!
- * mosaic-teleport v0.0.17 | License: MIT 
+ * mosaic-teleport v0.0.18 | License: MIT 
  * 
  */
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -289,17 +289,18 @@ return /******/ (function(modules) { // webpackBootstrap
 	         *            the name of the API function to invoke
 	         * 
 	         */
-	        add : function(path, http, method) {
-	            if (_.isObject(path)) {
-	                var obj = path;
-	                path = obj.path;
-	                http = obj.http;
-	                method = obj.method;
+	        add : function(path, http, method, options) {
+	            var obj = {
+	                path : normalizePath(path),
+	                http : http,
+	                method : method
+	            };
+	            if (options) {
+	                obj.options = options;
 	            }
-	            path = normalizePath(path);
-	            var conf = this._config[path] = this._config[path] || {};
-	            conf[http] = method;
-	            this._mapper.add(path, conf);
+	            var conf = this._config[obj.path] = this._config[obj.path] || {};
+	            conf[http] = obj;
+	            this._mapper.add(obj.path, conf);
 	            return this;
 	        },
 
@@ -311,6 +312,19 @@ return /******/ (function(modules) { // webpackBootstrap
 	            return this._mapper.find(path);
 	        },
 
+	        /** Returns a list of all paths. */
+	        getAllPaths : function() {
+	            return _.keys(this._config);
+	        },
+
+	        /**
+	         * Returns descriptions for all HTTP methods defined for the specified
+	         * path.
+	         */
+	        getPathMethods : function(path) {
+	            return this._config[path];
+	        },
+
 	        /** Exports the content of this descriptor as a JSON object. */
 	        exportJson : function() {
 	            var api = [];
@@ -318,13 +332,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	                api : api
 	            };
 	            var that = this;
-	            _.each(that._config, function(conf, path) {
-	                _.each(conf, function(method, http) {
-	                    api.push({
-	                        path : path,
-	                        http : http,
-	                        method : method
-	                    });
+	            _.each(that._config, function(obj) {
+	                _.each(obj, function(conf) {
+	                    api.push(conf);
 	                });
 	            });
 	            api.sort(function(a, b) {
@@ -343,7 +353,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                array = _.toArray(json);
 	            }
 	            _.each(array, function(conf) {
-	                that.add(conf);
+	                that.add(conf.path, conf.http, conf.method, conf.options);
 	            });
 	        }
 
@@ -405,6 +415,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    http : method.http,
 	                    path : method.path
 	                };
+	                var hasOptions = false;
+	                var options = {};
+	                _.each(_.keys(method), function(key) {
+	                    if (key != 'http' && key != 'path') {
+	                        hasOptions = true;
+	                        options[key] = method[key];
+	                    }
+	                });
+	                if (hasOptions) {
+	                    obj.options = options;
+	                }
 	                result.push(obj);
 	            });
 	            return result;
@@ -416,10 +437,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	         * ApiDescriptor instance from class (see the
 	         * ApiDescriptor.getDescriptor and ApiDescriptor.getDescriptorJson).
 	         */
-	        bind : function(path, http, method) {
-	            method.http = http;
-	            method.path = path;
-	            return method;
+	        bind : function(path, http, method, options) {
+	            return _.extend(method, {
+	                http : http,
+	                path : path
+	            }, options);
 	        }
 	    });
 
@@ -572,13 +594,21 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    throw Errors.newError('Path not found "' + path + '"')
 	                            .code(404);
 	                }
-	                var methodName = conf.obj[http];
-	                if (!methodName) {
-	                    throw Errors//
-	                    .newError('HTTP method "' + http.toUpperCase() + //
+	                var info = conf.obj[http];
+	                if (!info) {
+	                    throw Errors.newError('HTTP method "' + http.toUpperCase() + //
 	                    '" is not supported. Path: "' + path + '".').code(404);
 	                }
-	                return that._callMethod(req, res, methodName, conf.params);
+	                var methodName = info.method;
+	                var results = that._callMethod(req, res, methodName,
+	                        conf.params);
+	                var options = conf.obj.options;
+	                if (options && options.headers && res.setHeader) {
+	                    _.each(options.headers, function(header, key) {
+	                        res.setHeader(key, header);
+	                    });
+	                }
+	                return results;
 	            }
 	        },
 
@@ -720,9 +750,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	            that.descriptor = that.options.descriptor;
 	            that.client = that.options.client || that._newHttpClient();
 	            that.handle = that._wrapHandleMethod(that.handle);
-	            var config = that.descriptor._config;
-	            _.each(config, function(obj, path) {
-	                _.each(obj, function(methodName, http) {
+	            var paths = that.descriptor.getAllPaths();
+	            _.each(paths, function(path) {
+	                var methods = that.descriptor.getPathMethods(path);
+	                _.each(methods, function(conf, http) {
+	                    var methodName = conf.method;
 	                    that[methodName] = function(params) {
 	                        var p = that._getFullPath(path, params);
 	                        var req = that.client.newRequest({
@@ -1197,7 +1229,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    _.extend(query, req.params);
 	                }
 	            }
-
 	            var agent = Superagent[method](req.url);
 	            if (this.options.formEncoded) {
 	                agent.type('form');

@@ -44,24 +44,18 @@ function(require) {
          *            the name of the API function to invoke
          * 
          */
-        add : function(path, http, method) {
-            var conf;
-            if (_.isObject(path)) {
-                conf = path;
-                path = conf.path;
-                http = conf.http;
-                method = conf.method;
-            } else {
-                conf = {
-                    http : http
-                };
+        add : function(path, http, method, options) {
+            var obj = {
+                path : normalizePath(path),
+                http : http,
+                method : method
+            };
+            if (options) {
+                obj.options = options;
             }
-            var path = normalizePath(path);
-            this._config[path] = _.extend({}, this._config[path], conf);
-            conf.path = path;
-            conf[http] = method;
-            delete conf.method;
-            this._mapper.add(path, conf);
+            var conf = this._config[obj.path] = this._config[obj.path] || {};
+            conf[http] = obj;
+            this._mapper.add(obj.path, conf);
             return this;
         },
 
@@ -73,6 +67,19 @@ function(require) {
             return this._mapper.find(path);
         },
 
+        /** Returns a list of all paths. */
+        getAllPaths : function() {
+            return _.keys(this._config);
+        },
+
+        /**
+         * Returns descriptions for all HTTP methods defined for the specified
+         * path.
+         */
+        getPathMethods : function(path) {
+            return this._config[path];
+        },
+
         /** Exports the content of this descriptor as a JSON object. */
         exportJson : function() {
             var api = [];
@@ -80,8 +87,10 @@ function(require) {
                 api : api
             };
             var that = this;
-            _.each(that._config, function(conf, path) {
-                api.push(conf);
+            _.each(that._config, function(obj) {
+                _.each(obj, function(conf) {
+                    api.push(conf);
+                });
             });
             api.sort(function(a, b) {
                 return a.path > b.path ? 1 : a.path < b.path ? -1 : 0;
@@ -99,7 +108,7 @@ function(require) {
                 array = _.toArray(json);
             }
             _.each(array, function(conf) {
-                that.add(conf);
+                that.add(conf.path, conf.http, conf.method, conf.options);
             });
         }
 
@@ -156,13 +165,22 @@ function(require) {
                 var method = service[name];
                 if (!method.http || !method.path)
                     return;
-                var obj = {};
+                var obj = {
+                    method : name,
+                    http : method.http,
+                    path : method.path
+                };
+                var hasOptions = false;
+                var options = {};
                 _.each(_.keys(method), function(key) {
-                    obj[key] = method[key];
+                    if (key != 'http' && key != 'path') {
+                        hasOptions = true;
+                        options[key] = method[key];
+                    }
                 });
-                obj.method = name;
-                obj.http = method.http;
-                obj.path = method.path;
+                if (hasOptions) {
+                    obj.options = options;
+                }
                 result.push(obj);
             });
             return result;
@@ -331,17 +349,17 @@ function(require) {
                     throw Errors.newError('Path not found "' + path + '"')
                             .code(404);
                 }
-                var methodName = conf.obj[http];
-                if (!methodName) {
-                    throw Errors//
-                    .newError('HTTP method "' + http.toUpperCase() + //
+                var info = conf.obj[http];
+                if (!info) {
+                    throw Errors.newError('HTTP method "' + http.toUpperCase() + //
                     '" is not supported. Path: "' + path + '".').code(404);
                 }
+                var methodName = info.method;
                 var results = that._callMethod(req, res, methodName,
                         conf.params);
-                var headers = conf.obj.headers;
-                if (headers && res.setHeader) {
-                    _.each(headers, function(header, key) {
+                var options = conf.obj.options;
+                if (options && options.headers && res.setHeader) {
+                    _.each(options.headers, function(header, key) {
                         res.setHeader(key, header);
                     });
                 }
@@ -410,8 +428,7 @@ function(require) {
                 .code(500);
             }
             var params = that._getMethodParams(method, urlParams, req, res);
-            var result = f.call(instance, params);
-            return result;
+            return f.call(instance, params);
         },
 
         /**
@@ -488,9 +505,11 @@ function(require) {
             that.descriptor = that.options.descriptor;
             that.client = that.options.client || that._newHttpClient();
             that.handle = that._wrapHandleMethod(that.handle);
-            var config = that.descriptor._config;
-            _.each(config, function(obj, path) {
-                _.each(obj, function(methodName, http) {
+            var paths = that.descriptor.getAllPaths();
+            _.each(paths, function(path) {
+                var methods = that.descriptor.getPathMethods(path);
+                _.each(methods, function(conf, http) {
+                    var methodName = conf.method;
                     that[methodName] = function(params) {
                         var p = that._getFullPath(path, params);
                         var req = that.client.newRequest({
