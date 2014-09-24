@@ -1,13 +1,4 @@
-if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
-}
-define(
-// Dependencies
-[ 'require', 'mosaic-commons', './HttpClient', './ApiDescriptor',
-        './ApiDispatcher', './PathMapper', './HttpClient',
-        './HttpClientSuperagent' ],
-// Module
-function(require) {
+
     var _ = require('underscore');
     var HttpClient = require('./HttpClient');
     var Superagent = require('superagent');
@@ -20,5 +11,4 @@ function(require) {
         HttpClientSuperagent : require('./HttpClientSuperagent')
     };
     Teleport.HttpClient.Superagent = Teleport.HttpClientSuperagent;
-    return Teleport;
-});
+    module.exports = Teleport;

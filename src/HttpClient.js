@@ -1,11 +1,4 @@
-if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
-}
-define(
-// Dependencies
-[ 'require', 'underscore', 'mosaic-commons' ],
-// Module
-function(require) {
+
 
     var Mosaic = require('mosaic-commons');
     var Class = Mosaic.Class;
@@ -139,5 +132,4 @@ function(require) {
         return new HttpClient.Superagent(options);
     };
 
-    return HttpClient;
-});
+    module.exports = HttpClient;

@@ -1,12 +1,3 @@
-if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
-}
-define(
-// Dependencies
-[ 'require', 'underscore', 'mosaic-commons', // 
-'./PathMapper', './ApiDescriptor' ],
-// Module
-function(require) {
 
     var Mosaic = require('mosaic-commons');
     var P = Mosaic.P;
@@ -182,5 +173,4 @@ function(require) {
         }
     });
 
-    return ApiDispatcher;
-});
+    module.exports = ApiDispatcher;

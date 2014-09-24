@@ -1,11 +1,3 @@
-if (typeof define !== 'function') {
-    var define = require('amdefine')(module);
-}
-define(
-// Dependencies
-[ 'require', 'underscore', 'superagent', './HttpClient' ],
-// Module
-function(require) {
 
     var _ = require('underscore');
     var HttpClient = require('./HttpClient');
@@ -61,5 +53,4 @@ function(require) {
         }
     });
 
-    return HttpClientSuperagent;
-});
+    module.exports = HttpClientSuperagent;
