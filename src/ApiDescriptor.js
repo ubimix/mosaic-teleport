@@ -566,10 +566,16 @@ function(require) {
             var apiInfo = description.api;
             var descriptor = new ApiDescriptor();
             descriptor.importJson(apiInfo);
+            var client = httpClient;
+            if (description.baseUrl && baseUrl !== description.baseUrl) {
+                client = new HttpClient.newInstance({
+                    baseUrl : description.baseUrl
+                });
+            }
             return new ApiDescriptor.HttpClientStub(_.extend(options, {
                 path : description.endpoint,
                 descriptor : descriptor,
-                client : httpClient,
+                client : client,
             }));
         });
     };

@@ -1,5 +1,5 @@
 /*!
- * mosaic-teleport v0.0.18 | License: MIT 
+ * mosaic-teleport v0.0.19 | License: MIT 
  * 
  */
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -193,6 +193,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            options.params = options.params || {};
 	            options.body = options.body || options.params || {};
 	            options.url = this._toUrl(options.path);
+	            console.log('>>>', options.url);
 	            options.query = options.query || {};
 	            options.headers = options.headers || {};
 	            return options;
@@ -811,10 +812,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	            var apiInfo = description.api;
 	            var descriptor = new ApiDescriptor();
 	            descriptor.importJson(apiInfo);
+	            var client = httpClient;
+	            if (description.baseUrl && baseUrl !== description.baseUrl) {
+	                client = new HttpClient.newInstance({
+	                    baseUrl : description.baseUrl
+	                });
+	            }
 	            return new ApiDescriptor.HttpClientStub(_.extend(options, {
 	                path : description.endpoint,
 	                descriptor : descriptor,
-	                client : httpClient,
+	                client : client,
 	            }));
 	        });
 	    };
