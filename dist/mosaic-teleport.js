@@ -1,5 +1,5 @@
 /*!
- * mosaic-teleport v0.0.19 | License: MIT 
+ * mosaic-teleport v0.0.20 | License: MIT 
  * 
  */
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -193,7 +193,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	            options.params = options.params || {};
 	            options.body = options.body || options.params || {};
 	            options.url = this._toUrl(options.path);
-	            console.log('>>>', options.url);
 	            options.query = options.query || {};
 	            options.headers = options.headers || {};
 	            return options;
