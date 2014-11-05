@@ -1,5 +1,5 @@
 /*!
- * mosaic-teleport v0.0.20 | License: MIT 
+ * mosaic-teleport v0.0.21 | License: MIT 
  * 
  */
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -63,7 +63,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(1), __webpack_require__(4), __webpack_require__(5),
 	        __webpack_require__(6), __webpack_require__(7), __webpack_require__(4),
-	        __webpack_require__(8) ], __WEBPACK_AMD_DEFINE_RESULT__ = (function(require) {
+	        __webpack_require__(8) ], __WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
 	    var _ = __webpack_require__(2);
 	    var HttpClient = __webpack_require__(4);
 	    var Superagent = __webpack_require__(3);
@@ -77,7 +77,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    };
 	    Teleport.HttpClient.Superagent = Teleport.HttpClientSuperagent;
 	    return Teleport;
-	}.apply(null, __WEBPACK_AMD_DEFINE_ARRAY__)), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
 /***/ },
@@ -105,7 +105,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;if (false) {
 	    var define = require('amdefine')(module);
 	}
-	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(1) ], __WEBPACK_AMD_DEFINE_RESULT__ = (function(require) {
+	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(1) ], __WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
 
 	    var Mosaic = __webpack_require__(1);
 	    var Class = Mosaic.Class;
@@ -240,7 +240,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    };
 
 	    return HttpClient;
-	}.apply(null, __WEBPACK_AMD_DEFINE_ARRAY__)), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
 /***/ },
@@ -250,7 +250,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;if (false) {
 	    var define = require('amdefine')(module);
 	}
-	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(1), __webpack_require__(7), __webpack_require__(4) ], __WEBPACK_AMD_DEFINE_RESULT__ = (function(require) {
+	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(1), __webpack_require__(7), __webpack_require__(4) ], __WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
 
 	    var Mosaic = __webpack_require__(1);
 	    var Class = Mosaic.Class;
@@ -826,7 +826,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    };
 
 	    return ApiDescriptor;
-	}.apply(null, __WEBPACK_AMD_DEFINE_ARRAY__)), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
 /***/ },
@@ -837,7 +837,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var define = require('amdefine')(module);
 	}
 	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(1), // 
-	__webpack_require__(7), __webpack_require__(5) ], __WEBPACK_AMD_DEFINE_RESULT__ = (function(require) {
+	__webpack_require__(7), __webpack_require__(5) ], __WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
 
 	    var Mosaic = __webpack_require__(1);
 	    var P = Mosaic.P;
@@ -1014,7 +1014,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    });
 
 	    return ApiDispatcher;
-	}.apply(null, __WEBPACK_AMD_DEFINE_ARRAY__)), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
 /***/ },
@@ -1024,7 +1024,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;if (false) {
 	    var define = require('amdefine')(module);
 	}
-	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(1) ], __WEBPACK_AMD_DEFINE_RESULT__ = (function(require) {
+	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(1) ], __WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
 
 	    var Mosaic = __webpack_require__(1);
 	    var Class = Mosaic.Class;
@@ -1193,7 +1193,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	    return PathMapper;
 
-	}.apply(null, __WEBPACK_AMD_DEFINE_ARRAY__)), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
 /* 8 */
@@ -1202,7 +1202,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;if (false) {
 	    var define = require('amdefine')(module);
 	}
-	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(3), __webpack_require__(4) ], __WEBPACK_AMD_DEFINE_RESULT__ = (function(require) {
+	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(3), __webpack_require__(4) ], __WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
 
 	    var _ = __webpack_require__(2);
 	    var HttpClient = __webpack_require__(4);
@@ -1259,9 +1259,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	    });
 
 	    return HttpClientSuperagent;
-	}.apply(null, __WEBPACK_AMD_DEFINE_ARRAY__)), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 
 /***/ }
 /******/ ])
-})
+});

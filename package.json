@@ -1,6 +1,6 @@
 {
   "name": "mosaic-teleport",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "main": "src",
   "licenses": [
     {
@@ -14,10 +14,10 @@
     }
   ],
   "dependencies": {
-    "mosaic-commons": "*",
-    "underscore": "~1.4.4",
-    "superagent": "~0.18.0",
-    "amdefine": "^0.1.0"
+    "amdefine": "^0.1.0",
+    "mosaic-commons": "~0.0.15",
+    "superagent": "^0.18.2",
+    "underscore": "^1.7.0"
   },
   "devDependencies": {
     "mocha": "*",
