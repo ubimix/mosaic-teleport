@@ -47,7 +47,7 @@ function(require) {
                     if (r) {
                         res.status = r.status;
                         _.extend(res.headers, r.headers || {});
-                        res.body = r.body;
+                        res.body = r.body || r.text;
                     } else if (err && err.status) {
                         res.status = err.status;
                     } else {

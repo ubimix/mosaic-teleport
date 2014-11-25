@@ -1,5 +1,5 @@
 /*!
- * mosaic-teleport v0.0.21 | License: MIT 
+ * mosaic-teleport v0.0.22 | License: MIT 
  * 
  */
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -106,16 +106,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var define = require('amdefine')(module);
 	}
 	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(1) ], __WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
-
+	
 	    var Mosaic = __webpack_require__(1);
 	    var Class = Mosaic.Class;
 	    var Errors = Mosaic.Errors;
 	    var P = Mosaic.P;
 	    var _ = __webpack_require__(2);
-
+	
 	    /** A generic HTTP client wrapper. */
 	    var HttpClient = Class.extend({
-
+	
 	        /**
 	         * Initializes this class.
 	         * 
@@ -129,7 +129,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                        .code(501);
 	            }
 	        },
-
+	
 	        /**
 	         * Creates a new request and response and executes this request. This
 	         * method returns a promise with the result of the execution.
@@ -139,7 +139,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            var res = this.newResponse(req);
 	            return this.handle(req, res);
 	        },
-
+	
 	        /**
 	         * Handles the specified request to the remote API method and returns a
 	         * promise with the response.
@@ -181,7 +181,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }
 	            return defer.promise;
 	        },
-
+	
 	        /**
 	         * Create a request object containing URL to invoke, method to invoke,
 	         * query parameters, HTTP headers and the main body.
@@ -197,7 +197,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            options.headers = options.headers || {};
 	            return options;
 	        },
-
+	
 	        /**
 	         * Creates and returns a new response object corresponding to the
 	         * specified request.
@@ -211,7 +211,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                error : null
 	            };
 	        },
-
+	
 	        /**
 	         * Transforms the specified path to the full URL. This method uses the
 	         * "baseUrl" parameter defined in the constructor to build the full
@@ -222,7 +222,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            var baseUrl = options.baseUrl || '';
 	            return baseUrl + path;
 	        },
-
+	
 	        /**
 	         * This method should implement a real HTTP call and return results
 	         * using the specified callback method. First parameter of this callback
@@ -234,11 +234,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	            callback(err);
 	        },
 	    });
-
+	
 	    HttpClient.newInstance = function(options) {
 	        return new HttpClient.Superagent(options);
 	    };
-
+	
 	    return HttpClient;
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
@@ -251,28 +251,28 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var define = require('amdefine')(module);
 	}
 	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(1), __webpack_require__(7), __webpack_require__(4) ], __WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
-
+	
 	    var Mosaic = __webpack_require__(1);
 	    var Class = Mosaic.Class;
 	    var Errors = Mosaic.Errors;
 	    var P = Mosaic.P;
-
+	
 	    var _ = __webpack_require__(2);
 	    var PathMapper = __webpack_require__(7);
 	    var HttpClient = __webpack_require__(4);
-
+	
 	    /**
 	     * This descriptor defines API instance methods and their mapping to HTTP
 	     * URLs and parameters.
 	     */
 	    var ApiDescriptor = Class.extend({
-
+	
 	        /** Initializes this instance */
 	        initialize : function() {
 	            this._config = {};
 	            this._mapper = new PathMapper();
 	        },
-
+	
 	        /**
 	         * Defines a new API method, the corresponding REST path and the
 	         * corresponding HTTP method (GET, POST, PUT, DELETE...)
@@ -303,7 +303,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            this._mapper.add(obj.path, conf);
 	            return this;
 	        },
-
+	
 	        /**
 	         * Returns a description of the method to invoke corresponding to the
 	         * specified path.
@@ -311,12 +311,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	        get : function(path) {
 	            return this._mapper.find(path);
 	        },
-
+	
 	        /** Returns a list of all paths. */
 	        getAllPaths : function() {
 	            return _.keys(this._config);
 	        },
-
+	
 	        /**
 	         * Returns descriptions for all HTTP methods defined for the specified
 	         * path.
@@ -324,7 +324,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        getPathMethods : function(path) {
 	            return this._config[path];
 	        },
-
+	
 	        /** Exports the content of this descriptor as a JSON object. */
 	        exportJson : function() {
 	            var api = [];
@@ -342,7 +342,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            });
 	            return result;
 	        },
-
+	
 	        /** Imports the content of this descriptor from a JSON array. */
 	        importJson : function(json) {
 	            var that = this;
@@ -356,9 +356,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	                that.add(conf.path, conf.http, conf.method, conf.options);
 	            });
 	        }
-
+	
 	    });
-
+	
 	    /**
 	     * Normalizes paths - add the first slash and remove a trail separator. If
 	     * the specified path is empty (or null) then this method returns an empty
@@ -377,13 +377,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	        }
 	        return path;
 	    }
-
+	
 	    /** Static methods */
 	    _.extend(ApiDescriptor, {
-
+	
 	        /** Make this method publicly available. */
 	        normalizePath : normalizePath,
-
+	
 	        /**
 	         * Automatically creates an API descriptor by reading properties
 	         * associated with methods of the specified class. If a method has
@@ -396,7 +396,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            descriptor.importJson(json);
 	            return descriptor;
 	        },
-
+	
 	        /**
 	         * Automatically creates a JSON object containing definition of the API.
 	         * If a method of the specified class has string properties "http" and
@@ -430,7 +430,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            });
 	            return result;
 	        },
-
+	
 	        /**
 	         * This method is used to bind "path" and "http" properties to the given
 	         * class method. These properties are used to automatically create a
@@ -444,7 +444,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }, options);
 	        }
 	    });
-
+	
 	    /**
 	     * A common superclass for client/server handlers
 	     * (ApiDescriptor.HttpClientStub and ApiDescriptor.HttpServerStub) executing
@@ -477,7 +477,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                });
 	            };
 	        },
-
+	
 	        /**
 	         * This method is called just before calling an API method. By default
 	         * this method try to call the 'beginHttpCall' method defined (if any)
@@ -488,7 +488,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                this.options.beginHttpCall(params);
 	            }
 	        },
-
+	
 	        /**
 	         * This method is invoked just after calling an API method. By default
 	         * this method try to call the 'endHttpCall' method defined (if any) in
@@ -500,16 +500,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }
 	        },
 	    });
-
+	
 	    /**
 	     * HTTP server stub redirecting server-side calls to the real API
 	     * implementation described by an ApiDescriptor instance.
 	     */
 	    ApiDescriptor.HttpServerStub = Handler.extend({
-
+	
 	        /** This suffix is used to define URLs returning API descriptions. */
 	        INFO_SUFFIX : '.info',
-
+	
 	        /** Registers this server stub in the specified Express application. */
 	        registerIn : function(app) {
 	            var that = this;
@@ -518,7 +518,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                that.handle(req, res).done();
 	            });
 	        },
-
+	
 	        /**
 	         * Initializes this object and checks that the specified options contain
 	         * an API descriptor.
@@ -546,14 +546,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	            this.options.path = normalizePath(this.options.path);
 	            this._doHandle = this._wrapHandleMethod(this._doHandle);
 	        },
-
+	
 	        /**
 	         * Returns an internal descriptor corresponding to this server stub.
 	         */
 	        getDescriptor : function() {
 	            return this.descriptor;
 	        },
-
+	
 	        /**
 	         * Handles the specified HTTP request by calling a method corresponding
 	         * to the request path.
@@ -575,7 +575,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                res.status(errObj.status).send(errObj);
 	            });
 	        },
-
+	
 	        /**
 	         * Handles the specified HTTP request. This method is used by the
 	         * "handle" method to perform real actions.
@@ -611,7 +611,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                return results;
 	            }
 	        },
-
+	
 	        /** Returns a JSON descriptor for the specified handler */
 	        getEndpointJson : function() {
 	            var that = this;
@@ -620,7 +620,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            json.endpoint = that.options.path;
 	            return json;
 	        },
-
+	
 	        /**
 	         * Returns true if the specified path corresponds to an API description
 	         * endpoint. IE this endpoint should send a JSON description of all API
@@ -632,7 +632,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            var idx = path.lastIndexOf(this.INFO_SUFFIX);
 	            return (idx >= 0 && idx === path.length - this.INFO_SUFFIX.length);
 	        },
-
+	
 	        /**
 	         * Returns an instance where the specified method should be invoked.
 	         * 
@@ -650,7 +650,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            var instance = options.instance || this;
 	            return instance;
 	        },
-
+	
 	        /**
 	         * Calls the specified method on the API implementation instance.
 	         * 
@@ -675,7 +675,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            var params = that._getMethodParams(method, urlParams, req, res);
 	            return f.call(instance, params);
 	        },
-
+	
 	        /**
 	         * This method aggregates all parameters defined in the HTTP request and
 	         * transforms them in the parameter object used to invoke an API method.
@@ -687,7 +687,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        _getMethodParams : function(method, urlParams, req, res) {
 	            return _.extend({}, req.query, req.body, req.cookies, urlParams);
 	        },
-
+	
 	        /**
 	         * Returns a localized version of the specified path. This path is used
 	         * to find an API method to invoke. Used internally by the "_doHandle"
@@ -698,7 +698,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            return path.substring(prefix.length);
 	        }
 	    });
-
+	
 	    /** Extract and returns path from the given request object. */
 	    ApiDescriptor.HttpServerStub.getPath = function(req) {
 	        var path = req.path;
@@ -721,13 +721,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	        }
 	        return path;
 	    };
-
+	
 	    /**
 	     * Http client stub generating API methods based on an ApiDescriptor
 	     * instance and forwarding all method calls to a remote server by HTTP.
 	     */
 	    ApiDescriptor.HttpClientStub = Handler.extend({
-
+	
 	        /**
 	         * Initializes this object and checks that the specified options contain
 	         * an API descriptor and a base URL of the API endpoint to invoke.
@@ -768,7 +768,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                });
 	            });
 	        },
-
+	
 	        /**
 	         * Handles the specified request to the remote API method and returns a
 	         * promise with the response.
@@ -776,20 +776,20 @@ return /******/ (function(modules) { // webpackBootstrap
 	        handle : function(req, res) {
 	            return this.client.handle(req, res);
 	        },
-
+	
 	        /**
 	         * Creates and returns a new HTTP client (an instance of the HttpClient
 	         */
 	        _newHttpClient : function() {
 	            return new HttpClient.newInstance(this.options);
 	        },
-
+	
 	        /** Returns a full path for the specified method path. */
 	        _getFullPath : function(methodPath, params) {
 	            return PathMapper.formatPath(methodPath, params);
 	        }
 	    });
-
+	
 	    /**
 	     * Loads API description and returns a client stub corresponding to the
 	     * specified endpoint URL.
@@ -824,7 +824,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }));
 	        });
 	    };
-
+	
 	    return ApiDescriptor;
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
@@ -838,7 +838,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	}
 	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(1), // 
 	__webpack_require__(7), __webpack_require__(5) ], __WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
-
+	
 	    var Mosaic = __webpack_require__(1);
 	    var P = Mosaic.P;
 	    var Errors = Mosaic.Errors;
@@ -846,13 +846,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var _ = __webpack_require__(2);
 	    var PathMapper = __webpack_require__(7);
 	    var ApiDescriptor = __webpack_require__(5);
-
+	
 	    /**
 	     * API dispatcher provides mapping between path prefixes and instances
 	     * implementing server endpoints.
 	     */
 	    var ApiDispatcher = Class.extend({
-
+	
 	        /**
 	         * Initializes this object.
 	         * 
@@ -864,7 +864,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            this.options.path = this._normalizePath(this.options.path);
 	            this._mapping = new PathMapper();
 	        },
-
+	
 	        /**
 	         * Binds a new service to the path prefix.
 	         * 
@@ -879,7 +879,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            var handler = that._newServerStub(options);
 	            that._mapping.add(mask, handler);
 	        },
-
+	
 	        /**
 	         * Removes an endpoint corresponding to the specified path.
 	         */
@@ -896,7 +896,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                }
 	            });
 	        },
-
+	
 	        /**
 	         * Handles the specified request by dispatching it to registered API
 	         * endpoints.
@@ -919,7 +919,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                res.send(errObj.status, errObj);
 	            });
 	        },
-
+	
 	        /**
 	         * Loads information about an endpoint corresponding to the specified
 	         * path.
@@ -944,7 +944,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                return item ? item.obj : null;
 	            });
 	        },
-
+	
 	        /**
 	         * Creates and returns a new server stub providing remote access to the
 	         * given service instance.
@@ -962,7 +962,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }
 	            return handler;
 	        },
-
+	
 	        /**
 	         * This method could overloaded in subclasses to load a service
 	         * corresponding to the specified path. This method should return an
@@ -974,7 +974,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        _loadEndpoint : function(path) {
 	            return null;
 	        },
-
+	
 	        /**
 	         * Builds and returns a mask for an endpoint defined by the path options
 	         * parameter.
@@ -992,7 +992,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            options.mask = options.path + '*prefix';
 	            return options.mask;
 	        },
-
+	
 	        /**
 	         * Normalizes paths - add the first slash and remove a trail separator.
 	         * If the specified path is empty (or null) then this method returns an
@@ -1012,7 +1012,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            return path;
 	        }
 	    });
-
+	
 	    return ApiDispatcher;
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
@@ -1025,24 +1025,24 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var define = require('amdefine')(module);
 	}
 	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(1) ], __WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
-
+	
 	    var Mosaic = __webpack_require__(1);
 	    var Class = Mosaic.Class;
 	    var _ = __webpack_require__(2);
-
+	
 	    /**
 	     * This class is used to map path masks to objects. It allows to find
 	     * nearest object matching to the given path. This class is useful to
 	     * implement call routers.
 	     */
 	    var PathMapper = Class.extend({
-
+	
 	        /** Initialization of this object. */
 	        initialize : function() {
 	            var that = this;
 	            that.handlers = [];
 	        },
-
+	
 	        /**
 	         * Adds a new object to this mapper.
 	         * 
@@ -1086,7 +1086,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                obj : obj
 	            });
 	        },
-
+	
 	        /**
 	         * Finds and returns a nearest object corresponding to the given path.
 	         * This method returns an object with two fields: 1) The 'obj' field
@@ -1117,7 +1117,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            });
 	            return result;
 	        },
-
+	
 	        /**
 	         * Removes and returns the mapped object corresponding to the specified
 	         * path mask.
@@ -1136,9 +1136,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	            });
 	            return removed;
 	        }
-
+	
 	    });
-
+	
 	    /**
 	     * A static method used to format a string based on the given path mask and
 	     * specified parameters.
@@ -1179,7 +1179,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        }
 	        return path.join('');
 	    };
-
+	
 	    /** Regular expression used to find and replace special symbols. */
 	    var escapeRegExp = /[\-{}\[\]+?.,\\\^$|#\s]/g;
 	    /** Escapes the specified string */
@@ -1190,9 +1190,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	    function wrap(str) {
 	        return '(' + str + ')';
 	    }
-
+	
 	    return PathMapper;
-
+	
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
 /***/ },
@@ -1203,22 +1203,22 @@ return /******/ (function(modules) { // webpackBootstrap
 	    var define = require('amdefine')(module);
 	}
 	!(__WEBPACK_AMD_DEFINE_ARRAY__ = [ __webpack_require__, __webpack_require__(2), __webpack_require__(3), __webpack_require__(4) ], __WEBPACK_AMD_DEFINE_RESULT__ = function(require) {
-
+	
 	    var _ = __webpack_require__(2);
 	    var HttpClient = __webpack_require__(4);
 	    var Superagent = __webpack_require__(3);
-
+	
 	    /**
 	     * An implementation of the HttpClient interface based on the Superagent
 	     * HTTP client library.
 	     */
 	    var HttpClientSuperagent = HttpClient.Superagent = HttpClient.extend({
-
+	
 	        initialize : function(options) {
 	            var init = HttpClient.prototype.initialize;
 	            init.call(this, options);
 	        },
-
+	
 	        http : function(req, res, callback) {
 	            var method = (req.method || 'get').toLowerCase();
 	            if (method == 'delete') {
@@ -1244,7 +1244,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	                    if (r) {
 	                        res.status = r.status;
 	                        _.extend(res.headers, r.headers || {});
-	                        res.body = r.body;
+	                        res.body = r.body || r.text;
 	                    } else if (err && err.status) {
 	                        res.status = err.status;
 	                    } else {
@@ -1257,7 +1257,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            });
 	        }
 	    });
-
+	
 	    return HttpClientSuperagent;
 	}.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
 
@@ -1265,3 +1265,5 @@ return /******/ (function(modules) { // webpackBootstrap
 /***/ }
 /******/ ])
 });
+
+//# sourceMappingURL=mosaic-teleport.js.map
