@@ -64,7 +64,6 @@ function(require) {
                 if (sessionId) {
                     // Set a sessionId header
                     params.res.set('x-session-id', sessionId);
-                    // params.res.cookie(''x-session-id', sessionId);
                 }
             },
         });

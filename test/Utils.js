@@ -37,11 +37,21 @@ function(require) {
             var express = require('express');
             var bodyParser = require('body-parser');
             var cookieParser = require('cookie-parser');
+            var session = require('express-session');
 
             // Creates and initializes an Express application
             var app = express();
             app.use(bodyParser.urlencoded({
                 extended : false
+            }));
+            var timestamp = new Date().getTime();
+            app.use(session({
+                resave : true,
+                saveUninitialized : false,
+                genid : function(req) {
+                    return timestamp + '-' + new Date().getTime(); // use UUIDs for session IDs
+                },
+                secret : 'keyboard cat'
             }));
             app.use(bodyParser.json());
             app.use(cookieParser('optional secret string'));
