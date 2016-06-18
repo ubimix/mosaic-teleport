@@ -3,13 +3,9 @@ module.exports = {
     output : {
         path : __dirname + '/dist',
         filename : 'index.js',
+        library : 'teleport',
         libraryTarget : 'umd'
     },
-    module : {
-        loaders : [ {
-            test : /\.js$/,
-            loader : "babel-loader"
-        } ]
-    },
-    externals : [],
+    module : {},
+    externals : [ 'superagent' ],
 };

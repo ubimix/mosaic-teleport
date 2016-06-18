@@ -1,9 +1,0 @@
-{
-    "name" : "mosaic-teleport-example",
-    "version" : "0.0.3",
-    "main" : "server.js",
-    "dependencies" : {
-        "express" : "*",
-        "mosaic-commons" : "*"
-    }
-}
