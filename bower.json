@@ -1,7 +1,7 @@
 {
     "name": "mosaic-teleport",
-  	"version": "0.0.22",
-    "main" : "src",
+  	"version": "0.1.1",
+    "main" : "dist",
     "dependencies" : {
     }
 }
