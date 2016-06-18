@@ -1,5 +1,5 @@
 var expect = require('expect.js');
-var teleport = require('../');
+var teleport = require('../')(Promise);
 
 describe('ServiceTest', function() {
     it('should be able to generate service descriptor from annotated methods',
@@ -56,7 +56,7 @@ describe('ServiceTest', function() {
         service.about.method = 'GET';
         service.about.path = '/about';
 
-        var adapter = new teleport.ServiceAdapter(Promise, service);
+        var adapter = new teleport.ServiceAdapter(service);
         expect(adapter.descriptor).to.eql({
             about : {
                 method : 'get',
@@ -122,10 +122,10 @@ describe('ServiceTest', function() {
         service.about.method = 'GET';
         service.about.path = '/about';
 
-        var adapter = new teleport.ServiceAdapter(Promise, service);
-        var client = new teleport.ServiceClient(Promise, adapter.descriptor);
-        client._call = adapter.handle.bind(adapter);
+        var adapter = new teleport.ServiceAdapter(service);
 
+        // Use the adapter directly as a client handler
+        var client = new teleport.ServiceClient(adapter);
         return Promise.all([ client.sayHello({
             params : {
                 msg : 'Toto/Titi/Tata'
